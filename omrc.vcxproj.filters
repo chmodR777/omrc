@@ -1,0 +1,857 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{432f7273-a047-4453-9e36-13addf007645}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gtest">
+      <UniqueIdentifier>{81ad17b5-f077-430f-93dc-c85d6b7c5baf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\tool_kit">
+      <UniqueIdentifier>{a5bd68f7-a309-4ba7-9b9a-d461663b6b43}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\algorithm">
+      <UniqueIdentifier>{27150d00-3cb7-48ce-a3e7-d9919b7b5af5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\geometry">
+      <UniqueIdentifier>{199e1cd2-5fd9-4b33-9dbe-fd0e70c16c08}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core">
+      <UniqueIdentifier>{6ac6ef2b-4bbc-429f-9d76-10f7967f4f4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\record">
+      <UniqueIdentifier>{5eed4dbc-ee48-4c94-b7f4-dfbc7af8656e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\loader">
+      <UniqueIdentifier>{ab069bc2-dad0-449e-a27e-63e883686fc4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\compiler">
+      <UniqueIdentifier>{291aec00-b5f4-4965-9930-e3e934e0b1d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\om">
+      <UniqueIdentifier>{0fdf7146-a726-4298-84e8-ccb918b70950}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\processor">
+      <UniqueIdentifier>{1199779a-a4dd-49a2-95bc-65bf363b3d02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\writer">
+      <UniqueIdentifier>{cd41cd77-d051-404e-b7ec-5257a0fcc0ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\framework">
+      <UniqueIdentifier>{dce882a0-f931-4c84-9b6d-f0d5538f5875}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\command">
+      <UniqueIdentifier>{5e7168be-bc0a-45fb-abe1-4fc136a3d0e1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cpputil">
+      <UniqueIdentifier>{7403a7e1-45e8-4769-95d8-c4a5ae696a59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\poly2tri">
+      <UniqueIdentifier>{44de3bcb-26e5-4185-8a96-9a48d646c914}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\glu">
+      <UniqueIdentifier>{5ede0abc-f080-4ce8-a749-7fbb03f230fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\generator">
+      <UniqueIdentifier>{61b06c91-fe96-4e5e-bfd1-c8b1cbbf1abd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\sd_road">
+      <UniqueIdentifier>{e55b8601-4282-4100-a9a8-042a00e8c950}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\stdafx.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gtest\src\gtest-all.cc">
+      <Filter>gtest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gtest\src\gtest-all.cc">
+      <Filter>gtest</Filter>
+    </ClCompile>
+    <ClCompile Include="src\navi_core_env.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tool_kit\call_stack_walker.cpp">
+      <Filter>src\tool_kit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tool_kit\os_kit.cpp">
+      <Filter>src\tool_kit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tool_kit\safe_batched_allocator.cpp">
+      <Filter>src\tool_kit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\grap_point_algorithm.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tool_kit\new_handler.cpp">
+      <Filter>src\tool_kit</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\geography_algorithm.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\loader\DataLoader.cpp">
+      <Filter>src\core\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\loader\DbLaneLoader.cpp">
+      <Filter>src\core\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\loader\DbLaneMarkLoader.cpp">
+      <Filter>src\core\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\loader\DbLinkLoader.cpp">
+      <Filter>src\core\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\loader\DbObjectLoader.cpp">
+      <Filter>src\core\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\loader\DbRecordIterator.cpp">
+      <Filter>src\core\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\loader\DbRoadBoundaryLoader.cpp">
+      <Filter>src\core\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\processor\LaneProcessor.cpp">
+      <Filter>src\core\processor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\processor\LinkGroupProcessor.cpp">
+      <Filter>src\core\processor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\processor\LinkProcessor.cpp">
+      <Filter>src\core\processor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\processor\Processor.cpp">
+      <Filter>src\core\processor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\processor\RoadBoundaryProcessor.cpp">
+      <Filter>src\core\processor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\Compiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\GreenbeltCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\GroupCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\IntersectionCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\MarkingCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\PierCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\RoadCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\TextCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\om\HadGrid.cpp">
+      <Filter>src\core\om</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\CompileCommand.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\CompileSetting.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\processor\LaneBoundaryProcessor.cpp">
+      <Filter>src\core\processor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\LineCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\GuardrailCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\writer\RdsWriterFactory.cpp">
+      <Filter>src\core\writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\writer\SpatialiteWriter.cpp">
+      <Filter>src\core\writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\writer\Writer.cpp">
+      <Filter>src\core\writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\processor\ObjectProcessor.cpp">
+      <Filter>src\core\processor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\processor\LinkGroupAssociationProcessor.cpp">
+      <Filter>src\core\processor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\CrossWalkCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\DiversionCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\writer\RdsDatabaseWriter.cpp">
+      <Filter>src\core\writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\loader\DbIntersectionLoader.cpp">
+      <Filter>src\core\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\processor\IntersectionProcessor.cpp">
+      <Filter>src\core\processor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\loader\DbTollGateLoader.cpp">
+      <Filter>src\core\loader</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\processor\TollGateProcessor.cpp">
+      <Filter>src\core\processor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\TollGateCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\writer\MapboxWriter.cpp">
+      <Filter>src\core\writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\GradeSeparationCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\RoutingCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\DistributedCompiler.cpp">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\framework\FileManager.cpp">
+      <Filter>src\core\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\framework\MeshCache.cpp">
+      <Filter>src\core\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\framework\FastTable.cpp">
+      <Filter>src\core\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\framework\SpatialSeacher.cpp">
+      <Filter>src\core\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\framework\TopoBuilder.cpp">
+      <Filter>src\core\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\record\DbMesh.cpp">
+      <Filter>src\core\record</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\polyline_simplifier.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\record\MeshReader.cpp">
+      <Filter>src\core\record</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\record\MeshWriter.cpp">
+      <Filter>src\core\record</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\command\OmrpCommand.cpp">
+      <Filter>src\core\command</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\command\OmrpTestCommand.cpp">
+      <Filter>src\core\command</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\command\OutputCoordinateCommand.cpp">
+      <Filter>src\core\command</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\SpeedLimitBoardCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\clipper.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\geometry_uitls.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\had_coordinate_converter.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\map_point3d64_converter.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\point_converter.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\polyline_intersector.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\tangential_algorithm.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\arg_parser.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\cli_command_center.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\concurrent_task_runner.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\console_util.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\cq_string.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\csv_field_parser.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\csv_reader.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\line_parser.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\midmif_reader.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\nds_cache.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\nds_db.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cpputil\src\polyline_tile_splitter.cpp">
+      <Filter>cpputil</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\TunnelCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\line_projection_triangle_surface.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\GroupSemiTransparentCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\command\RdsDataCheckCommand.cpp">
+      <Filter>src\core\command</Filter>
+    </ClCompile>
+    <ClCompile Include="src\poly2tri\common\shapes.cc">
+      <Filter>src\poly2tri</Filter>
+    </ClCompile>
+    <ClCompile Include="src\poly2tri\sweep\advancing_front.cc">
+      <Filter>src\poly2tri</Filter>
+    </ClCompile>
+    <ClCompile Include="src\poly2tri\sweep\cdt.cc">
+      <Filter>src\poly2tri</Filter>
+    </ClCompile>
+    <ClCompile Include="src\poly2tri\sweep\sweep.cc">
+      <Filter>src\poly2tri</Filter>
+    </ClCompile>
+    <ClCompile Include="src\poly2tri\sweep\sweep_context.cc">
+      <Filter>src\poly2tri</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\poly2tri.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\linear_interpolation_triangle_surface.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\polygon_triangularizer.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\polygon_tessellator.cpp">
+      <Filter>src\algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glu\tess.c">
+      <Filter>src\glu</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glu\dict.c">
+      <Filter>src\glu</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glu\geom.c">
+      <Filter>src\glu</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glu\memalloc.c">
+      <Filter>src\glu</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glu\mesh.c">
+      <Filter>src\glu</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glu\normal.c">
+      <Filter>src\glu</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glu\priorityq.c">
+      <Filter>src\glu</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glu\render.c">
+      <Filter>src\glu</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glu\sweep.c">
+      <Filter>src\glu</Filter>
+    </ClCompile>
+    <ClCompile Include="src\glu\tessmono.c">
+      <Filter>src\glu</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\TrafficLightsCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\generator\Generator.cpp">
+      <Filter>src\core\generator</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\generator\RoadBoundaryGenerator.cpp">
+      <Filter>src\core\generator</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\generator\LaneBoundaryGenerator.cpp">
+      <Filter>src\core\generator</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\generator\LaneGenerator.cpp">
+      <Filter>src\core\generator</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\generator\GroupGenerator.cpp">
+      <Filter>src\core\generator</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\framework\MeshTopoBuilder.cpp">
+      <Filter>src\core\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\generator\ZGenerator.cpp">
+      <Filter>src\core\generator</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\generator\IntersectionGenerator.cpp">
+      <Filter>src\core\generator</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\generator\LinkGenerator.cpp">
+      <Filter>src\core\generator</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\TransparentCompiler.cpp" />
+    <ClCompile Include="src\core\framework\RTreeSeacher.cpp">
+      <Filter>src\core\framework</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\sd_road\DirLink.cpp">
+      <Filter>src\core\sd_road</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\sd_road\DirLinkPath.cpp">
+      <Filter>src\core\sd_road</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\sd_road\DivicedRoadSearcher.cpp">
+      <Filter>src\core\sd_road</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\stdafx.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\gtest\include\gtest\gtest.h">
+      <Filter>gtest</Filter>
+    </ClInclude>
+    <ClInclude Include="src\navi_core_env.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tool_kit\call_stack_walker.h">
+      <Filter>src\tool_kit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tool_kit\os_kit.h">
+      <Filter>src\tool_kit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tool_kit\safe_batched_allocator.h">
+      <Filter>src\tool_kit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\grap_point_algorithm.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tool_kit\new_handler.h">
+      <Filter>src\tool_kit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\geography_algorithm.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\record\DbRecord.h">
+      <Filter>src\core\record</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\loader\DataLoader.h">
+      <Filter>src\core\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\loader\DbLaneLoader.h">
+      <Filter>src\core\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\loader\DbLaneMarkLoader.h">
+      <Filter>src\core\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\loader\DbLinkLoader.h">
+      <Filter>src\core\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\loader\DbObjectLoader.h">
+      <Filter>src\core\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\loader\DbRecordIterator.h">
+      <Filter>src\core\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\loader\DbRoadBoundaryLoader.h">
+      <Filter>src\core\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\processor\LaneProcessor.h">
+      <Filter>src\core\processor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\processor\LinkGroupProcessor.h">
+      <Filter>src\core\processor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\processor\LinkProcessor.h">
+      <Filter>src\core\processor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\processor\Processor.h">
+      <Filter>src\core\processor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\processor\RoadBoundaryProcessor.h">
+      <Filter>src\core\processor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\Compiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\GreenbeltCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\GroupCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\IntersectionCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\MarkingCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\PierCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\RoadCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\TextCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\om\HadElement.h">
+      <Filter>src\core\om</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\om\HadGrid.h">
+      <Filter>src\core\om</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\CompileCommand.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\CompileSetting.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\processor\LaneBoundaryProcessor.h">
+      <Filter>src\core\processor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\LineCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\Geometry.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\GuardrailCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\writer\RdsWriterFactory.h">
+      <Filter>src\core\writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\writer\SpatialiteWriter.h">
+      <Filter>src\core\writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\writer\Writer.h">
+      <Filter>src\core\writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\processor\ObjectProcessor.h">
+      <Filter>src\core\processor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\processor\LinkGroupAssociationProcessor.h">
+      <Filter>src\core\processor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\CrossWalkCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\DiversionCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\writer\RdsDatabaseWriter.h">
+      <Filter>src\core\writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\loader\DbIntersectionLoader.h">
+      <Filter>src\core\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\processor\IntersectionProcessor.h">
+      <Filter>src\core\processor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\loader\DbTollGateLoader.h">
+      <Filter>src\core\loader</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\processor\TollGateProcessor.h">
+      <Filter>src\core\processor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\TollGateCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\writer\MapboxWriter.h">
+      <Filter>src\core\writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\GradeSeparationCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\RoutingCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\DistributedCompiler.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\framework\FileManager.h">
+      <Filter>src\core\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\framework\MeshCache.h">
+      <Filter>src\core\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\framework\FastTable.h">
+      <Filter>src\core\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\framework\SpatialSeacher.h">
+      <Filter>src\core\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\framework\Spinlock.h">
+      <Filter>src\core\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\framework\TopoBuilder.h">
+      <Filter>src\core\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\record\DbMesh.h">
+      <Filter>src\core\record</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\polyline_simplifier.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\record\MeshReader.h">
+      <Filter>src\core\record</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\record\MeshWriter.h">
+      <Filter>src\core\record</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\command\OmrpCommand.h">
+      <Filter>src\core\command</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\command\OmrpTestCommand.h">
+      <Filter>src\core\command</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\command\OutputCoordinateCommand.h">
+      <Filter>src\core\command</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\SpeedLimitBoardCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\geometry\map_point3d64.h">
+      <Filter>src\geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="src\geometry\map_point64.h">
+      <Filter>src\geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="src\geometry\map_rect64.h">
+      <Filter>src\geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\clipper.hpp">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\geometry_utils.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\had_coordinate_converter.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\map_point3d64_converter.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\point_converter.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\polyline_intersector.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\tangential_algorithm.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpputil\include\cpputil\arg_parser.h">
+      <Filter>cpputil</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpputil\include\cpputil\cli_command_center.h">
+      <Filter>cpputil</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpputil\include\cpputil\concurrent_task_runner.h">
+      <Filter>cpputil</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpputil\include\cpputil\console_util.h">
+      <Filter>cpputil</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpputil\include\cpputil\cq_string.h">
+      <Filter>cpputil</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpputil\src\csv_field_parser.h">
+      <Filter>cpputil</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpputil\include\cpputil\csv_reader.h">
+      <Filter>cpputil</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpputil\include\cpputil\midmif_reader.h">
+      <Filter>cpputil</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpputil\include\cpputil\nds_db.h">
+      <Filter>cpputil</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cpputil\include\cpputil\polyline_tile_splitter.h">
+      <Filter>cpputil</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tool_kit\boost_geometry_utils.h">
+      <Filter>src\tool_kit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\TunnelCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\line_projection_triangle_surface.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\GroupSemiTransparentCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\command\RdsDataCheckCommand.h">
+      <Filter>src\core\command</Filter>
+    </ClInclude>
+    <ClInclude Include="src\poly2tri\poly2tri.h">
+      <Filter>src\poly2tri</Filter>
+    </ClInclude>
+    <ClInclude Include="src\poly2tri\common\dll_symbol.h">
+      <Filter>src\poly2tri</Filter>
+    </ClInclude>
+    <ClInclude Include="src\poly2tri\common\shapes.h">
+      <Filter>src\poly2tri</Filter>
+    </ClInclude>
+    <ClInclude Include="src\poly2tri\common\utils.h">
+      <Filter>src\poly2tri</Filter>
+    </ClInclude>
+    <ClInclude Include="src\poly2tri\sweep\advancing_front.h">
+      <Filter>src\poly2tri</Filter>
+    </ClInclude>
+    <ClInclude Include="src\poly2tri\sweep\cdt.h">
+      <Filter>src\poly2tri</Filter>
+    </ClInclude>
+    <ClInclude Include="src\poly2tri\sweep\sweep.h">
+      <Filter>src\poly2tri</Filter>
+    </ClInclude>
+    <ClInclude Include="src\poly2tri\sweep\sweep_context.h">
+      <Filter>src\poly2tri</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\poly2tri.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\linear_interpolation_triangle_surface.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\polygon_triangularizer.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\polygon_tessellator.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\cq_gl.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\glu_part.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\tess.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\dict.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\dict-list.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\geom.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\gluos.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\memalloc.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\mesh.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\normal.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\priorityq.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\priorityq-heap.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\priorityq-heap.hpp">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\priorityq-sort.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\render.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\sweep.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\glu\tessmono.h">
+      <Filter>src\glu</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\TrafficLightsCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\generator\Generator.h">
+      <Filter>src\core\generator</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\generator\RoadBoundaryGenerator.h">
+      <Filter>src\core\generator</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\generator\LaneBoundaryGenerator.h">
+      <Filter>src\core\generator</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\generator\LaneGenerator.h">
+      <Filter>src\core\generator</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\generator\GroupGenerator.h">
+      <Filter>src\core\generator</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\framework\MeshTopoBuilder.h">
+      <Filter>src\core\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\generator\ZGenerator.h">
+      <Filter>src\core\generator</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\generator\IntersectionGenerator.h">
+      <Filter>src\core\generator</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\generator\LinkGenerator.h">
+      <Filter>src\core\generator</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\Segment.h">
+      <Filter>src\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\record\DbRecord.cpp">
+      <Filter>src\core\record</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\TransparentCompiler.h" />
+    <ClInclude Include="src\core\framework\RTreeSeacher.h">
+      <Filter>src\core\framework</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\sd_road\DirLink.h">
+      <Filter>src\core\sd_road</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\sd_road\DirLinkPath.h">
+      <Filter>src\core\sd_road</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\sd_road\DivicedRoadSearcher.h">
+      <Filter>src\core\sd_road</Filter>
+    </ClInclude>
+    <ClInclude Include="src\algorithm\map_point_math.h">
+      <Filter>src\algorithm</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

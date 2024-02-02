@@ -1,0 +1,372 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{555C8D9A-3C16-49C3-AAB1-5597BA9CDB65}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>OMDB</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>omrc</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>lib\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>obj\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>false</VcpkgEnabled>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>Disabled</Optimization>
+      <FunctionLevelLinking>
+      </FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <PreprocessorDefinitions>_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING;WIN32;NDEBUG;_CONSOLE;_LIB;USE_WRITER;P2T_STATIC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src;./src/algorithm;./src/geometry;./src/core;../eigen/include;../boost/include;../cpputil/include;../sqlite3/include;../navi_rds/include;../navicore-x64-std_debug_2019/include;../navicore-x64-std_debug_2019/include/protobuf;./3rd-party/libspatialite/include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <LanguageStandard>Default</LanguageStandard>
+      <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>../sqlite3/lib;../navi_rds/lib;../navicore-x64-std_debug_2019/lib/Debug</AdditionalLibraryDirectories>
+      <AdditionalDependencies>.\3rd-party\libspatialite\lib\spatialite_x64.lib;..\boost\lib\libboost_filesystem-vc142-mt-s-x64-1_81.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\cpputil\include\cpputil\arg_parser.h" />
+    <ClInclude Include="..\cpputil\include\cpputil\cli_command_center.h" />
+    <ClInclude Include="..\cpputil\include\cpputil\concurrent_task_runner.h" />
+    <ClInclude Include="..\cpputil\include\cpputil\console_util.h" />
+    <ClInclude Include="..\cpputil\include\cpputil\cq_string.h" />
+    <ClInclude Include="..\cpputil\include\cpputil\csv_reader.h" />
+    <ClInclude Include="..\cpputil\include\cpputil\midmif_reader.h" />
+    <ClInclude Include="..\cpputil\include\cpputil\nds_db.h" />
+    <ClInclude Include="..\cpputil\include\cpputil\polyline_tile_splitter.h" />
+    <ClInclude Include="..\cpputil\src\csv_field_parser.h" />
+    <ClInclude Include="..\gtest\include\gtest\gtest.h" />
+    <ClInclude Include="src\algorithm\clipper.hpp" />
+    <ClInclude Include="src\algorithm\geography_algorithm.h" />
+    <ClInclude Include="src\algorithm\geometry_utils.h" />
+    <ClInclude Include="src\algorithm\grap_point_algorithm.h" />
+    <ClInclude Include="src\algorithm\had_coordinate_converter.h" />
+    <ClInclude Include="src\algorithm\linear_interpolation_triangle_surface.h" />
+    <ClInclude Include="src\algorithm\line_projection_triangle_surface.h" />
+    <ClInclude Include="src\algorithm\map_point3d64_converter.h" />
+    <ClInclude Include="src\algorithm\map_point_math.h" />
+    <ClInclude Include="src\algorithm\point_converter.h" />
+    <ClInclude Include="src\algorithm\poly2tri.h" />
+    <ClInclude Include="src\algorithm\polygon_tessellator.h" />
+    <ClInclude Include="src\algorithm\polygon_triangularizer.h" />
+    <ClInclude Include="src\algorithm\polyline_intersector.h" />
+    <ClInclude Include="src\algorithm\polyline_simplifier.h" />
+    <ClInclude Include="src\algorithm\tangential_algorithm.h" />
+    <ClInclude Include="src\core\command\RdsDataCheckCommand.h" />
+    <ClInclude Include="src\core\compiler\TrafficLightsCompiler.h" />
+    <ClInclude Include="src\core\compiler\TransparentCompiler.h" />
+    <ClInclude Include="src\core\compiler\TunnelCompiler.h" />
+    <ClInclude Include="src\core\compiler\GroupSemiTransparentCompiler.h" />
+    <ClInclude Include="src\core\framework\MeshTopoBuilder.h" />
+    <ClInclude Include="src\core\framework\RTreeSeacher.h" />
+    <ClInclude Include="src\core\generator\Generator.h" />
+    <ClInclude Include="src\core\generator\GroupGenerator.h" />
+    <ClInclude Include="src\core\generator\IntersectionGenerator.h" />
+    <ClInclude Include="src\core\generator\LaneBoundaryGenerator.h" />
+    <ClInclude Include="src\core\generator\LaneGenerator.h" />
+    <ClInclude Include="src\core\generator\LinkGenerator.h" />
+    <ClInclude Include="src\core\generator\RoadBoundaryGenerator.h" />
+    <ClInclude Include="src\core\generator\ZGenerator.h" />
+    <ClInclude Include="src\core\record\DbRecord.cpp" />
+    <ClInclude Include="src\core\sd_road\DirLink.h" />
+    <ClInclude Include="src\core\sd_road\DirLinkPath.h" />
+    <ClInclude Include="src\core\sd_road\DivicedRoadSearcher.h" />
+    <ClInclude Include="src\core\Segment.h" />
+    <ClInclude Include="src\geometry\map_point3d64.h" />
+    <ClInclude Include="src\geometry\map_point64.h" />
+    <ClInclude Include="src\geometry\map_rect64.h" />
+    <ClInclude Include="src\glu\cq_gl.h" />
+    <ClInclude Include="src\glu\dict-list.h" />
+    <ClInclude Include="src\glu\dict.h" />
+    <ClInclude Include="src\glu\geom.h" />
+    <ClInclude Include="src\glu\gluos.h" />
+    <ClInclude Include="src\glu\glu_part.h" />
+    <ClInclude Include="src\glu\memalloc.h" />
+    <ClInclude Include="src\glu\mesh.h" />
+    <ClInclude Include="src\glu\normal.h" />
+    <ClInclude Include="src\glu\priorityq-heap.h" />
+    <ClInclude Include="src\glu\priorityq-heap.hpp" />
+    <ClInclude Include="src\glu\priorityq-sort.h" />
+    <ClInclude Include="src\glu\priorityq.h" />
+    <ClInclude Include="src\glu\render.h" />
+    <ClInclude Include="src\glu\sweep.h" />
+    <ClInclude Include="src\glu\tess.h" />
+    <ClInclude Include="src\glu\tessmono.h" />
+    <ClInclude Include="src\navi_core_env.h" />
+    <ClInclude Include="src\core\command\OmrpCommand.h" />
+    <ClInclude Include="src\core\command\OmrpTestCommand.h" />
+    <ClInclude Include="src\core\command\OutputCoordinateCommand.h" />
+    <ClInclude Include="src\core\CompileCommand.h" />
+    <ClInclude Include="src\core\compiler\Compiler.h" />
+    <ClInclude Include="src\core\compiler\CrossWalkCompiler.h" />
+    <ClInclude Include="src\core\compiler\DiversionCompiler.h" />
+    <ClInclude Include="src\core\compiler\GradeSeparationCompiler.h" />
+    <ClInclude Include="src\core\compiler\GreenbeltCompiler.h" />
+    <ClInclude Include="src\core\compiler\GroupCompiler.h" />
+    <ClInclude Include="src\core\compiler\GuardrailCompiler.h" />
+    <ClInclude Include="src\core\compiler\IntersectionCompiler.h" />
+    <ClInclude Include="src\core\compiler\LineCompiler.h" />
+    <ClInclude Include="src\core\compiler\MarkingCompiler.h" />
+    <ClInclude Include="src\core\compiler\PierCompiler.h" />
+    <ClInclude Include="src\core\compiler\RoadCompiler.h" />
+    <ClInclude Include="src\core\compiler\RoutingCompiler.h" />
+    <ClInclude Include="src\core\compiler\SpeedLimitBoardCompiler.h" />
+    <ClInclude Include="src\core\compiler\TextCompiler.h" />
+    <ClInclude Include="src\core\compiler\TollGateCompiler.h" />
+    <ClInclude Include="src\core\CompileSetting.h" />
+    <ClInclude Include="src\core\DistributedCompiler.h" />
+    <ClInclude Include="src\core\framework\FastTable.h" />
+    <ClInclude Include="src\core\framework\FileManager.h" />
+    <ClInclude Include="src\core\framework\MeshCache.h" />
+    <ClInclude Include="src\core\framework\SpatialSeacher.h" />
+    <ClInclude Include="src\core\framework\Spinlock.h" />
+    <ClInclude Include="src\core\framework\TopoBuilder.h" />
+    <ClInclude Include="src\core\Geometry.h" />
+    <ClInclude Include="src\core\loader\DataLoader.h" />
+    <ClInclude Include="src\core\loader\DbIntersectionLoader.h" />
+    <ClInclude Include="src\core\loader\DbLaneLoader.h" />
+    <ClInclude Include="src\core\loader\DbLaneMarkLoader.h" />
+    <ClInclude Include="src\core\loader\DbLinkLoader.h" />
+    <ClInclude Include="src\core\loader\DbObjectLoader.h" />
+    <ClInclude Include="src\core\loader\DbRecordIterator.h" />
+    <ClInclude Include="src\core\loader\DbRoadBoundaryLoader.h" />
+    <ClInclude Include="src\core\loader\DbTollGateLoader.h" />
+    <ClInclude Include="src\core\om\HadElement.h" />
+    <ClInclude Include="src\core\om\HadGrid.h" />
+    <ClInclude Include="src\core\processor\IntersectionProcessor.h" />
+    <ClInclude Include="src\core\processor\LinkGroupAssociationProcessor.h" />
+    <ClInclude Include="src\core\processor\LaneBoundaryProcessor.h" />
+    <ClInclude Include="src\core\processor\LaneProcessor.h" />
+    <ClInclude Include="src\core\processor\LinkGroupProcessor.h" />
+    <ClInclude Include="src\core\processor\LinkProcessor.h" />
+    <ClInclude Include="src\core\processor\ObjectProcessor.h" />
+    <ClInclude Include="src\core\processor\Processor.h" />
+    <ClInclude Include="src\core\processor\RoadBoundaryProcessor.h" />
+    <ClInclude Include="src\core\processor\TollGateProcessor.h" />
+    <ClInclude Include="src\core\record\DbMesh.h" />
+    <ClInclude Include="src\core\record\DbRecord.h" />
+    <ClInclude Include="src\core\record\MeshReader.h" />
+    <ClInclude Include="src\core\record\MeshWriter.h" />
+    <ClInclude Include="src\core\writer\MapboxWriter.h" />
+    <ClInclude Include="src\core\writer\RdsDatabaseWriter.h" />
+    <ClInclude Include="src\core\writer\RdsWriterFactory.h" />
+    <ClInclude Include="src\core\writer\SpatialiteWriter.h" />
+    <ClInclude Include="src\core\writer\Writer.h" />
+    <ClInclude Include="src\poly2tri\common\dll_symbol.h" />
+    <ClInclude Include="src\poly2tri\common\shapes.h" />
+    <ClInclude Include="src\poly2tri\common\utils.h" />
+    <ClInclude Include="src\poly2tri\poly2tri.h" />
+    <ClInclude Include="src\poly2tri\sweep\advancing_front.h" />
+    <ClInclude Include="src\poly2tri\sweep\cdt.h" />
+    <ClInclude Include="src\poly2tri\sweep\sweep.h" />
+    <ClInclude Include="src\poly2tri\sweep\sweep_context.h" />
+    <ClInclude Include="src\stdafx.h" />
+    <ClInclude Include="src\tool_kit\boost_geometry_utils.h" />
+    <ClInclude Include="src\tool_kit\call_stack_walker.h" />
+    <ClInclude Include="src\tool_kit\new_handler.h" />
+    <ClInclude Include="src\tool_kit\os_kit.h" />
+    <ClInclude Include="src\tool_kit\safe_batched_allocator.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\cpputil\src\arg_parser.cpp" />
+    <ClCompile Include="..\cpputil\src\cli_command_center.cpp" />
+    <ClCompile Include="..\cpputil\src\concurrent_task_runner.cpp" />
+    <ClCompile Include="..\cpputil\src\console_util.cpp" />
+    <ClCompile Include="..\cpputil\src\cq_string.cpp" />
+    <ClCompile Include="..\cpputil\src\csv_field_parser.cpp" />
+    <ClCompile Include="..\cpputil\src\csv_reader.cpp" />
+    <ClCompile Include="..\cpputil\src\line_parser.cpp" />
+    <ClCompile Include="..\cpputil\src\midmif_reader.cpp" />
+    <ClCompile Include="..\cpputil\src\nds_cache.cpp" />
+    <ClCompile Include="..\cpputil\src\nds_db.cpp" />
+    <ClCompile Include="..\cpputil\src\polyline_tile_splitter.cpp" />
+    <ClCompile Include="..\gtest\src\gtest-all.cc">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\clipper.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\algorithm\geography_algorithm.cpp" />
+    <ClCompile Include="src\algorithm\geometry_uitls.cpp" />
+    <ClCompile Include="src\algorithm\grap_point_algorithm.cpp" />
+    <ClCompile Include="src\algorithm\had_coordinate_converter.cpp" />
+    <ClCompile Include="src\algorithm\linear_interpolation_triangle_surface.cpp" />
+    <ClCompile Include="src\algorithm\line_projection_triangle_surface.cpp" />
+    <ClCompile Include="src\algorithm\map_point3d64_converter.cpp" />
+    <ClCompile Include="src\algorithm\point_converter.cpp" />
+    <ClCompile Include="src\algorithm\poly2tri.cpp" />
+    <ClCompile Include="src\algorithm\polygon_tessellator.cpp" />
+    <ClCompile Include="src\algorithm\polygon_triangularizer.cpp" />
+    <ClCompile Include="src\algorithm\polyline_intersector.cpp" />
+    <ClCompile Include="src\algorithm\polyline_simplifier.cpp" />
+    <ClCompile Include="src\algorithm\tangential_algorithm.cpp" />
+    <ClCompile Include="src\core\command\RdsDataCheckCommand.cpp" />
+    <ClCompile Include="src\core\compiler\TrafficLightsCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\TransparentCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\TunnelCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\GroupSemiTransparentCompiler.cpp" />
+    <ClCompile Include="src\core\framework\MeshTopoBuilder.cpp" />
+    <ClCompile Include="src\core\framework\RTreeSeacher.cpp" />
+    <ClCompile Include="src\core\generator\Generator.cpp" />
+    <ClCompile Include="src\core\generator\GroupGenerator.cpp" />
+    <ClCompile Include="src\core\generator\IntersectionGenerator.cpp" />
+    <ClCompile Include="src\core\generator\LaneBoundaryGenerator.cpp" />
+    <ClCompile Include="src\core\generator\LaneGenerator.cpp" />
+    <ClCompile Include="src\core\generator\LinkGenerator.cpp" />
+    <ClCompile Include="src\core\generator\RoadBoundaryGenerator.cpp" />
+    <ClCompile Include="src\core\generator\ZGenerator.cpp" />
+    <ClCompile Include="src\core\sd_road\DirLink.cpp" />
+    <ClCompile Include="src\core\sd_road\DirLinkPath.cpp" />
+    <ClCompile Include="src\core\sd_road\DivicedRoadSearcher.cpp" />
+    <ClCompile Include="src\glu\dict.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\glu\geom.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\glu\memalloc.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\glu\mesh.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\glu\normal.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\glu\priorityq.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\glu\render.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\glu\sweep.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\glu\tess.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\glu\tessmono.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\navi_core_env.cpp" />
+    <ClCompile Include="src\core\command\OmrpCommand.cpp" />
+    <ClCompile Include="src\core\command\OmrpTestCommand.cpp" />
+    <ClCompile Include="src\core\command\OutputCoordinateCommand.cpp" />
+    <ClCompile Include="src\core\CompileCommand.cpp" />
+    <ClCompile Include="src\core\compiler\Compiler.cpp" />
+    <ClCompile Include="src\core\compiler\CrossWalkCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\DiversionCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\GradeSeparationCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\GreenbeltCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\GroupCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\GuardrailCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\IntersectionCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\LineCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\MarkingCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\PierCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\RoadCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\RoutingCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\SpeedLimitBoardCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\TextCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\TollGateCompiler.cpp" />
+    <ClCompile Include="src\core\CompileSetting.cpp" />
+    <ClCompile Include="src\core\DistributedCompiler.cpp" />
+    <ClCompile Include="src\core\framework\FastTable.cpp" />
+    <ClCompile Include="src\core\framework\FileManager.cpp" />
+    <ClCompile Include="src\core\framework\MeshCache.cpp" />
+    <ClCompile Include="src\core\framework\SpatialSeacher.cpp" />
+    <ClCompile Include="src\core\framework\TopoBuilder.cpp" />
+    <ClCompile Include="src\core\loader\DataLoader.cpp" />
+    <ClCompile Include="src\core\loader\DbIntersectionLoader.cpp" />
+    <ClCompile Include="src\core\loader\DbLaneLoader.cpp" />
+    <ClCompile Include="src\core\loader\DbLaneMarkLoader.cpp" />
+    <ClCompile Include="src\core\loader\DbLinkLoader.cpp" />
+    <ClCompile Include="src\core\loader\DbObjectLoader.cpp" />
+    <ClCompile Include="src\core\loader\DbRecordIterator.cpp" />
+    <ClCompile Include="src\core\loader\DbRoadBoundaryLoader.cpp" />
+    <ClCompile Include="src\core\loader\DbTollGateLoader.cpp" />
+    <ClCompile Include="src\core\om\HadGrid.cpp" />
+    <ClCompile Include="src\core\processor\IntersectionProcessor.cpp" />
+    <ClCompile Include="src\core\processor\LinkGroupAssociationProcessor.cpp" />
+    <ClCompile Include="src\core\processor\LaneBoundaryProcessor.cpp" />
+    <ClCompile Include="src\core\processor\LaneProcessor.cpp" />
+    <ClCompile Include="src\core\processor\LinkGroupProcessor.cpp" />
+    <ClCompile Include="src\core\processor\LinkProcessor.cpp" />
+    <ClCompile Include="src\core\processor\ObjectProcessor.cpp" />
+    <ClCompile Include="src\core\processor\Processor.cpp" />
+    <ClCompile Include="src\core\processor\RoadBoundaryProcessor.cpp" />
+    <ClCompile Include="src\core\processor\TollGateProcessor.cpp" />
+    <ClCompile Include="src\core\record\DbMesh.cpp" />
+    <ClCompile Include="src\core\record\MeshReader.cpp" />
+    <ClCompile Include="src\core\record\MeshWriter.cpp" />
+    <ClCompile Include="src\core\writer\MapboxWriter.cpp" />
+    <ClCompile Include="src\core\writer\RdsDatabaseWriter.cpp" />
+    <ClCompile Include="src\core\writer\RdsWriterFactory.cpp" />
+    <ClCompile Include="src\core\writer\SpatialiteWriter.cpp" />
+    <ClCompile Include="src\core\writer\Writer.cpp" />
+    <ClCompile Include="src\poly2tri\common\shapes.cc">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\poly2tri\sweep\advancing_front.cc">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\poly2tri\sweep\cdt.cc">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\poly2tri\sweep\sweep.cc">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\poly2tri\sweep\sweep_context.cc">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\tool_kit\call_stack_walker.cpp" />
+    <ClCompile Include="src\tool_kit\new_handler.cpp" />
+    <ClCompile Include="src\tool_kit\os_kit.cpp" />
+    <ClCompile Include="src\tool_kit\safe_batched_allocator.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,28 @@
+{
+    "indirectProjects": [], 
+    "projects": [
+        {
+            "url": "git@gitlab.navinfo.com:rainbow/navicore/gtest.git", 
+            "projectName": "gtest", 
+            "branch": "master",
+            "hasLib": false
+        }, 
+        {
+            "url": "git@gitlab.navinfo.com:rainbow/navicore/cpputil.git", 
+            "projectName": "cpputil", 
+            "branch": "master",
+            "hasLib": false
+        },
+        {
+            "url": "http://lib.navicore.cn/ncgit/navicore-x64-std_debug_2019.zip", 
+            "projectName": "navicore-x64-std_debug_2019", 
+            "hasLib": false, 
+            "branch": "master"
+        },
+        {
+            "url": "http://lib.navicore.cn/ncgit/navicore-x64-std_2019.zip", 
+            "projectName": "navicore-x64-std_2019", 
+            "branch": "master"
+        }
+    ]
+}
