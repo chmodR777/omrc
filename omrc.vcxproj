@@ -91,6 +91,7 @@
     <ClInclude Include="src\algorithm\polyline_simplifier.h" />
     <ClInclude Include="src\algorithm\tangential_algorithm.h" />
     <ClInclude Include="src\core\command\RdsDataCheckCommand.h" />
+    <ClInclude Include="src\core\compiler\GreenbeltUrbanCompiler.h" />
     <ClInclude Include="src\core\compiler\TrafficLightsCompiler.h" />
     <ClInclude Include="src\core\compiler\TransparentCompiler.h" />
     <ClInclude Include="src\core\compiler\TunnelCompiler.h" />
@@ -239,6 +240,7 @@
     <ClCompile Include="src\algorithm\polyline_simplifier.cpp" />
     <ClCompile Include="src\algorithm\tangential_algorithm.cpp" />
     <ClCompile Include="src\core\command\RdsDataCheckCommand.cpp" />
+    <ClCompile Include="src\core\compiler\GreenbeltUrbanCompiler.cpp" />
     <ClCompile Include="src\core\compiler\TrafficLightsCompiler.cpp" />
     <ClCompile Include="src\core\compiler\TransparentCompiler.cpp" />
     <ClCompile Include="src\core\compiler\TunnelCompiler.cpp" />
