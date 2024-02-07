@@ -2,31 +2,18 @@
 #include "Compiler.h"
 #include <fstream>
 
+
+//#define __DEBUG_GREENBELTURBAN__   // 打印生成制作隔离带过程的文件。
+
 namespace OMDB
 {
 	/// <summary>
 	/// 城市绿化带
 	/// </summary>
-#if 0
 	class GreenbeltUrbanCompiler : public Compiler
 	{
+
 	public:
-		GreenbeltUrbanCompiler(CompilerData& data) :Compiler(data) {};
-		GreenbeltUrbanCompiler(){};
-
-		void startGreenbeltUrbanCompile(HadGrid* const pGrid, const std::vector<HadGrid*>& nearby, RdsTile* pTile);
-
-	protected:
-
-		virtual void compile(HadGrid* const pGrid, const std::vector<HadGrid*>& nearby, RdsTile* pTile) override;
-
-	};
-#endif
-
-	class GreenbeltUrbanCompiler : public Compiler
-	{
-	public:
-	//	GreenbeltUrbanCompiler(CompilerData& data) :Compiler(data) {};
 		GreenbeltUrbanCompiler(CompilerData& data);
 	
 	protected:
@@ -46,17 +33,30 @@ namespace OMDB
 
 		bool getPointsByLaneGroups(std::vector<HadLaneGroup*> inLaneGroups, std::vector<MapPoint3D64>& Points);
 
+		bool ableGreenbeltLaneGroup(HadLaneGroup* inLaneGroup);
+
+		bool alignLaneGroupsbylength(std::vector<HadLaneGroup*> & in1stLaneGroups, std::vector<HadLaneGroup*>& in2ndLaneGroups);
+
+		bool alignPoints(std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd);
+
+#ifdef __DEBUG_GREENBELTURBAN__
 		//debug
-		void PrintPoints(std::vector<MapPoint3D64> lanepoints, std::string filename = "Greenbelt_points");
+		void PrintPoints(std::vector<MapPoint3D64> lanepoints, std::string mark = "");
 		void PrintLaneGroup(HadLaneGroup* inLaneGroup, std::string mark = "");
+#endif
+	
+		
 
 	private:
 		std::vector<HadLaneGroup*>  m_1stLaneGroups;
 		std::vector< HadLaneGroup*> m_2ndLaneGroups;
 		std::vector< HadLaneGroup*> m_AllLaneGroups;
 
+#ifdef __DEBUG_GREENBELTURBAN__
 		//debug
 		std::ofstream m_debugofs;
+#endif
+
 	};
 
 

@@ -27,6 +27,7 @@
 #include "compiler/CrossWalkCompiler.h"
 #include "compiler/DiversionCompiler.h"
 #include "compiler/GreenbeltCompiler.h"
+#include "compiler/GreenbeltUrbanCompiler.h"
 #include "compiler/PierCompiler.h"
 #include "compiler/TextCompiler.h"
 #include "compiler/TollGateCompiler.h"
@@ -344,6 +345,7 @@ namespace OMDB
  		SpeedLimitBoardCompiler(compilerData).Compile(pGrid, nearby, pTile);	//À≥–Ú“¿¿µGuardrailCompiler()ÕÍ≥…°£
 		CrossWalkCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		GreenbeltCompiler(compilerData).Compile(pGrid, nearby, pTile);
+		GreenbeltUrbanCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		PierCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		TextCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		TollGateCompiler(compilerData).Compile(pGrid, nearby, pTile);
