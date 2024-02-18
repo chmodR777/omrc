@@ -43,6 +43,7 @@ namespace OMDB
 		//debug
 		void PrintPoints(std::vector<MapPoint3D64> lanepoints, std::string mark = "");
 		void PrintLaneGroup(HadLaneGroup* inLaneGroup, std::string mark = "");
+		void PrintLaneGroup(std::vector<HadLaneGroup*> LaneGroups, std::string mark = "");
 #endif
 	
 		
