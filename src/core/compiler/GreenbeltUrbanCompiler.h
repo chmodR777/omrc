@@ -49,9 +49,10 @@ namespace OMDB
 		
 
 	private:
+		HadGrid* m_pGrid;
 		std::vector<HadLaneGroup*>  m_1stLaneGroups;
 		std::vector< HadLaneGroup*> m_2ndLaneGroups;
-		std::vector< HadLaneGroup*> m_AllLaneGroups;
+		std::vector< HadLaneGroup*> m_VisitLaneGroups;	
 
 #ifdef __DEBUG_GREENBELTURBAN__
 		//debug

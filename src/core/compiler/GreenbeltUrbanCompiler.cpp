@@ -11,13 +11,14 @@ namespace OMDB
 	// 构造函数
 	GreenbeltUrbanCompiler::GreenbeltUrbanCompiler(CompilerData& data)
 	:Compiler(data),
+	m_pGrid(nullptr),
 	m_1stLaneGroups(),
 	m_2ndLaneGroups(),
 #ifdef __DEBUG_GREENBELTURBAN__
-	m_AllLaneGroups(),
+	m_VisitLaneGroups(),
 	m_debugofs()
 #else
-	m_AllLaneGroups()
+	m_VisitLaneGroups()
 #endif
 	{
 
@@ -31,21 +32,21 @@ namespace OMDB
 		m_debugofs = std::ofstream(std::to_string(pGrid->getId())+".txt", std::ios_base::out | std::ios_base::trunc);
 		//printf("---------------compile::start()  pGrid[m_meshId=%d]----------------------", pGrid->getId());
 #endif
-
+		m_pGrid = pGrid;
 		std::vector<HadGrid*> nearbyGrids = { pGrid };
 		for_each(nearby.begin(), nearby.end(), [&](HadGrid* g)->void {nearbyGrids.push_back(g); });
 
 		std::vector<HadLaneGroup*> laneGroups;
 		getGreenbeltLaneGroups(pGrid, laneGroups);		
 
-		m_AllLaneGroups.clear();
+		m_VisitLaneGroups.clear();
 		for (auto obj : laneGroups)
 		{
 			m_1stLaneGroups.clear();
 			m_2ndLaneGroups.clear();
 			HadLaneGroup* pGroup = (HadLaneGroup*)obj;
 
-			if(std::find(m_AllLaneGroups.begin(), m_AllLaneGroups.end(), pGroup) != m_AllLaneGroups.end())
+			if(std::find(m_VisitLaneGroups.begin(), m_VisitLaneGroups.end(), pGroup) != m_VisitLaneGroups.end())
 			{
 				continue;
 			}
@@ -63,6 +64,13 @@ namespace OMDB
 //			if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (225238699592858881)) // debug freeze
 //			if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227960477150810369)) //20169185	
 //			if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227938694053957633)) //20169192
+//			if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (225242841761658117))
+//			if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227957495147467009))// 20169187
+//			if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227936666317688833))// 20169187
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227957490126885121))// 20169187
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227940624788557825))// 20169187
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227953554456252673))// 20169187	
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (246694924675138561))// 20169187			
 			{
 				expandConnectionLaneGroups(pGroup, nearbyGrids, p1stLaneGroups);  // 先做当前pGroup的连接。提前做出一条边。抓取的时候也容易排除抓取到同一条边的情况
 				if (p1stLaneGroups.empty())
@@ -71,7 +79,7 @@ namespace OMDB
 				}
 				m_1stLaneGroups = p1stLaneGroups;
 
-				HadLaneGroup* otherLaneGroup = nullptr;				
+				HadLaneGroup* otherLaneGroup = nullptr;
 				bool bRet = grabOtherLaneGroup(pGrid, pGroup, otherLaneGroup);
 				if (!bRet || !otherLaneGroup)
 				{					
@@ -108,8 +116,22 @@ namespace OMDB
 					//continue;
 				}
 
-				RdsGreenbelt* pGreenbelt = (RdsGreenbelt*)createObject(pTile, EntityType::RDS_GREENBELT); // debug 复用高速道路
-			//	RdsGreenbeltUrban* pGreenbelt = (RdsGreenbeltUrban*)createObject(pTile, EntityType::RDS_GREENBELT_URBAN);
+
+				linestring_2t line2t1st = LINESTRING_2T(Points1st);
+			
+				linestring_2t line2t2nd = LINESTRING_2T(Points2nd);
+								
+				if (bg::intersects(line2t1st, line2t2nd)) // 有相交不做隔离带
+				{
+#ifdef __DEBUG_GREENBELTURBAN__
+					PrintPoints(Points1st, "Points1st intersects:"); //debug
+					PrintPoints(Points2nd, "Points2nd intersects:"); //debug
+#endif
+					continue;
+				}
+
+			//	RdsGreenbelt* pGreenbelt = (RdsGreenbelt*)createObject(pTile, EntityType::RDS_GREENBELT); // debug 复用高速道路
+				RdsGreenbeltUrban* pGreenbelt = (RdsGreenbeltUrban*)createObject(pTile, EntityType::RDS_GREENBELT_URBAN);
 				OMDB::LineString3d location = { Points1st };
 				RDS::LineString3d line;
 				convert(location, line);
@@ -120,8 +142,8 @@ namespace OMDB
 				convert(nearbyLocation, nearbyLine);
 				pGreenbelt->contour.lines.push_back(nearbyLine);
 
-				m_AllLaneGroups.insert(m_AllLaneGroups.end(), m_1stLaneGroups.begin(), m_1stLaneGroups.end());
-				m_AllLaneGroups.insert(m_AllLaneGroups.end(), m_2ndLaneGroups.begin(), m_2ndLaneGroups.end());
+				m_VisitLaneGroups.insert(m_VisitLaneGroups.end(), m_1stLaneGroups.begin(), m_1stLaneGroups.end());
+				m_VisitLaneGroups.insert(m_VisitLaneGroups.end(), m_2ndLaneGroups.begin(), m_2ndLaneGroups.end());
 
 #ifdef __DEBUG_GREENBELTURBAN__
 				PrintPoints(Points1st, "Points1st"); //debug
@@ -157,7 +179,7 @@ namespace OMDB
 				bool isRet1 = isProDataLevel(pGroup);
 				bool isRet2 = isMultiDigitized(pGroup);
 				std::string str = "isProDataLevel[" + std::to_string(isRet1) + "],isMultiDigitized[" + std::to_string(isRet2) + "]," + "inIntersection[" + std::to_string(pGroup->inIntersection) + "]";
-				PrintLaneGroup(pGroup,"able greenbelt:");
+				PrintLaneGroup(pGroup,"able greenbelt:"+ str);
 #endif
 			}
 			else
@@ -169,7 +191,6 @@ namespace OMDB
 				std::string str = "isProDataLevel[" + std::to_string(isRet1) + "],isMultiDigitized[" + std::to_string(isRet2) + "]," + "inIntersection[" + std::to_string(pGroup->inIntersection) + "]";
 				PrintLaneGroup(pGroup, "not greenbelt:"+ str);
 #endif
-
 			}
 		}
 
@@ -428,13 +449,15 @@ namespace OMDB
 		std::vector<HadLaneGroup*> nextLaneGroups;
 		HadLaneGroup* currentLaneGroup = inLaneGroup;
 
-		auto availableLaneGroup = [&](HadLaneGroup* inLaneGroup)
+		auto availableLaneGroup = [&,this](HadLaneGroup* inLaneGroup)
 		{
-			bool bRetPreFind = std::find(preLaneGroups.begin(), preLaneGroups.end(),inLaneGroup) != preLaneGroups.end(); // pre 是否存在
-			bool bRetNextFind = std::find(nextLaneGroups.begin(), nextLaneGroups.end(), inLaneGroup) != nextLaneGroups.end(); // next 是否存在
+			bool bRetPreFind = std::find(preLaneGroups.begin(), preLaneGroups.end(),inLaneGroup) != preLaneGroups.end(); // pre中是否存在
+			bool bRetNextFind = std::find(nextLaneGroups.begin(), nextLaneGroups.end(), inLaneGroup) != nextLaneGroups.end(); // next中是否存在
 			if ((inLaneGroup->inIntersection != 0)  // 路口不在接续
 				|| bRetPreFind			// pre 已经存在，不再接续
-				|| bRetNextFind )        // next 已经存在，不再接续
+				|| bRetNextFind			// next 已经存在，不再接续
+				|| inLaneGroup->owner->getId() != m_pGrid->getId()  // 跨网格的处理
+				)        
 			{
 				return false;
 			}
@@ -443,16 +466,12 @@ namespace OMDB
 
 		for(;;)
 		{
-			currentLaneGroup = getNextLaneGroup(currentLaneGroup, previous);
+			currentLaneGroup = getNextLaneGroup(currentLaneGroup, previous);			
 			if (currentLaneGroup && (availableLaneGroup(currentLaneGroup)==true))
 			{
 				preLaneGroups.push_back(currentLaneGroup);
-
-#ifdef __DEBUG_GREENBELTURBAN__
-				PrintLaneGroup(currentLaneGroup, "Prev->");
-				printf("expandConnectionLaneGroups(previous ) currentLaneGroup(laneGroups.roadBoundaries[0].originId[%lld])\n",
-					(*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)currentLaneGroup->roadBoundaries[0])))).originId);
-#endif
+			//	bool ret = directionEqual(currentLaneGroup->roadBoundaries[0], currentLaneGroup, 3); // debug
+			//	printf("===currentLaneGroup->roadBoundaries[0]->originId[%lld],currentLaneGroup->originId[%lld],ret[%d]======\n", currentLaneGroup->roadBoundaries[0]->originId,currentLaneGroup->originId,ret);
 			}
 			else
 			{
@@ -460,6 +479,12 @@ namespace OMDB
 			}			
 		}
 		std::reverse(preLaneGroups.begin(), preLaneGroups.end());  // 从头开始
+
+#ifdef __DEBUG_GREENBELTURBAN__
+		PrintLaneGroup(preLaneGroups, "Prev->");		
+		PrintLaneGroup(inLaneGroup, "Current->");
+#endif
+
 		preLaneGroups.push_back(inLaneGroup);
 		outConnectionLaneGroups = preLaneGroups;
 
@@ -470,23 +495,20 @@ namespace OMDB
 			if (currentLaneGroup && (availableLaneGroup(currentLaneGroup) == true))
 			{
 				nextLaneGroups.push_back(currentLaneGroup);
-
-#ifdef __DEBUG_GREENBELTURBAN__
-				PrintLaneGroup(currentLaneGroup, "Next->"); //debug
-				printf("expandConnectionLaneGroups( next ) currentLaneGroup(laneGroups.roadBoundaries[0].originId[%lld])\n",
-					(*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)currentLaneGroup->roadBoundaries[0])))).originId);  //debug
-#endif
 			}
 			else
 			{
 				break;
 			}
 		}
+
+#ifdef __DEBUG_GREENBELTURBAN__		
+		PrintLaneGroup(nextLaneGroups, "Next->");
+#endif
+
 		outConnectionLaneGroups.insert(outConnectionLaneGroups.end(), nextLaneGroups.begin(), nextLaneGroups.end());
-
 		
-		size_t i = nearby.size();
-
+		size_t i = nearby.size();// for build
 		return true;
 	}
 
@@ -595,30 +617,178 @@ namespace OMDB
 		//double leng2ndLaneGropups = calcLength(Points2nd);
 
 		
-		auto delLaneGroupbylength = [&](MapPoint3D64 srcPoint,std::vector<HadLaneGroup*>& inLaneGroups)
+		auto delLaneGroupbylength = [&](MapPoint3D64 originPoint,std::vector<HadLaneGroup*>& inLaneGroups)
 		{	
 			float currntLen = DBL_MAX;
 			float nextLen = 0;
+			point_t  startPoint = POINT_T(originPoint);
 			for (std::vector<HadLaneGroup*>::iterator ita = inLaneGroups.begin(); ita != inLaneGroups.end(); ita++)
 			{
 				std::vector<HadLaneGroup*> LaneGroups;
 				LaneGroups.push_back(*ita);
 				std::vector<MapPoint3D64> temPoints;
-				getPointsByLaneGroups(LaneGroups, temPoints);				
-				nextLen = calcLength(srcPoint, temPoints.front());
-				if (nextLen > currntLen)  // 找到最近的一个了
-				{					
-					inLaneGroups.erase(inLaneGroups.begin(), ita-1); // 最近之前的删除掉
-					break;
-				}
-				else
+				getPointsByLaneGroups(LaneGroups, temPoints);// 找到最近点对应的lanegroup	
+
+				for(int i =1; i< temPoints.size();i++)
 				{
-					currntLen = nextLen;
-				}
+					point_t p1 = POINT_T(temPoints[i - 1]);
+					point_t p2 = POINT_T(temPoints[i]);
+					point_t grapedPt;
+					if (GRAP_POINT(startPoint, segment_t(p1, p2), grapedPt, 300))  // 找到最近的一个lanegroup
+					{
+						if (ita != inLaneGroups.begin())						
+						{
+							inLaneGroups.erase(inLaneGroups.begin(), ita); // 最近之前的都删除掉
+						}
+						else
+						{
+							assert(0);
+						}
+						return true;
+					}
+				}				
 			}
 			return true;
 		};
 
+		auto isSameDirection = [&](std::vector<MapPoint3D64> Points1st, std::vector<MapPoint3D64> Points2nd)
+		{
+			float x = Points1st.front().pos.lat - Points1st.back().pos.lat;
+			float y = Points1st.front().pos.lon - Points1st.back().pos.lon;
+
+			float x1 = Points2nd.front().pos.lat - Points2nd.back().pos.lat;
+			float y1 = Points2nd.front().pos.lon - Points2nd.back().pos.lon;
+
+			float dot_product = x * x1 + y * y1; // 
+			return dot_product > 0 ? true : false;  // 计算点积  正值方向相同，负值方向相反
+		};
+
+		bool bSameDirection = isSameDirection(Points1st, Points2nd);
+		
+		std::vector<MapPoint3D64>::iterator ita, itb;
+
+		if (bSameDirection)   // 方向相同，1st头对应2nd头
+		{
+			// 1st头的处理	
+			getClosestSeg(Points1st.front(), Points2nd, ita, itb);// 确定1st头和2nd边的长短关系。
+			if (*ita == Points2nd.front())  // 1st头长于2nd的头。 需要删除1st的头，接近2nd的头
+			{
+				float len = calcLength(Points1st.front(), Points2nd.front());  // 计算1st头到2nd头的距离。
+				if (len > 10000) // 控制在10m范围左右
+				{
+					delLaneGroupbylength(Points2nd.front(), m_1stLaneGroups);  // 删除1st的头
+				}
+			}
+			else //需要删除2nd的头 
+			{
+				getClosestSeg(Points2nd.front(), Points1st, ita, itb);// 确定2nd头和1st边的长短关系。
+				if (*ita == Points1st.front())  // 2nd头长于1st的头。 需要删除2nd的头，接近1st的头
+				{
+					float len = calcLength(Points2nd.front(), Points1st.front());  // 计算2nd头到1st的头距离。
+					if (len > 10000) // 控制在10m范围左右
+					{
+						delLaneGroupbylength(Points1st.front(), m_2ndLaneGroups); // 删除2nd的头
+					}
+				}
+				else
+				{
+					// 1st的头
+					assert(0);
+				}
+			}
+
+			// 1st尾的处理	
+			getClosestSeg(Points1st.back(), Points2nd, ita, itb);// 确定1st尾和2nd边的长短关系。
+			if (*itb == Points2nd.back())  // 1st尾巴长于2nd的尾。 需要删除1st的尾，接近2nd的尾
+			{
+				float len = calcLength(Points1st.back(), Points2nd.front());  // 计算1st尾到2nd的头距离。
+				if (len > 10000) // 控制在10m范围左右
+				{
+					std::reverse(m_1stLaneGroups.begin(), m_1stLaneGroups.end());  // 从尾部删除。
+					delLaneGroupbylength(Points2nd.front(), m_1stLaneGroups);	   // 删除1st的尾
+					std::reverse(m_1stLaneGroups.begin(), m_1stLaneGroups.end());
+				}
+			}
+			else
+			{
+				getClosestSeg(Points2nd.back(), Points1st, ita, itb);// 确定2nd尾和1st边的长短关系。
+				if (*itb == Points1st.back())  // 2nd尾长于1st的尾。 需要删除2nd尾，接近1st的尾
+				{
+					float len = calcLength(Points2nd.back(), Points1st.back());  // 计算2nd尾到1st的尾距离。
+					if (len > 10000) // 控制在10m范围左右
+					{
+						std::reverse(m_2ndLaneGroups.begin(), m_2ndLaneGroups.end());
+						delLaneGroupbylength(Points1st.back(), m_2ndLaneGroups); // 删除2nd的尾巴
+						std::reverse(m_2ndLaneGroups.begin(), m_2ndLaneGroups.end());
+					}
+				}
+				else
+				{
+					assert(0);
+				}
+			}
+		}
+		else  //方向相反，1st头对应2nd的尾巴
+		{
+			// 1st头的处理	
+			getClosestSeg(Points1st.front(), Points2nd, ita, itb);// 确定1st头和2nd边的长短关系。
+			if (*itb == Points2nd.back())  // 1st头长于2nd的尾。 需要删除1st的头，接近2nd的尾
+			{
+				float len = calcLength(Points1st.front(), Points2nd.back());  // 计算1st头到2nd尾的距离。
+				if (len > 10000) // 控制在10m范围左右
+				{
+					delLaneGroupbylength(Points2nd.back(), m_1stLaneGroups); // 删除1的头，接近2的尾
+				}
+			}
+			else //需要删除2nd的尾巴
+			{
+				getClosestSeg(Points2nd.back(), Points1st, ita, itb);// 确定2nd尾和1st边的长短关系。
+				if (*ita == Points1st.front())  // 2nd尾长于1st的头。 需要删除2nd尾，接近1st的头
+				{
+					float len = calcLength(Points2nd.back(), Points1st.front());  // 计算2nd尾到1st的头距离。
+					if (len > 10000) // 控制在10m范围左右
+					{
+						std::reverse(m_2ndLaneGroups.begin(), m_2ndLaneGroups.end());
+						delLaneGroupbylength(Points1st.back(), m_2ndLaneGroups); // 删除2nd的尾巴
+						std::reverse(m_2ndLaneGroups.begin(), m_2ndLaneGroups.end());
+					}
+				}
+			}
+
+			// 1st尾的处理.
+			getClosestSeg(Points1st.back(), Points2nd, ita, itb);// 确定1st尾和2nd边的长短关系。
+			if (*ita == Points2nd.front())  // 1st尾长于2nd的头。 需要删除1st的尾，接近2nd的头
+			{
+				float len = calcLength(Points1st.back(), Points2nd.front());  // 计算1st尾到2nd头的距离。
+				if (len > 10000) // 控制在10m范围左右
+				{
+					std::reverse(m_1stLaneGroups.begin(), m_1stLaneGroups.end());  // 从尾部删除。
+					delLaneGroupbylength(Points2nd.front(), m_1stLaneGroups);	   // 删除1st的尾
+					std::reverse(m_1stLaneGroups.begin(), m_1stLaneGroups.end());
+				}
+			}
+			else //需要删除2nd的头
+			{
+				getClosestSeg(Points2nd.front(), Points1st, ita, itb);// 确定2nd头和1st边的长短关系。
+				if (*itb == Points1st.back())  // 2nd头长于1st的尾。 需要删除2nd的头，接近1st的尾
+				{
+					float len = calcLength(Points2nd.front(), Points1st.back());  // 计算2nd头到1st的尾距离。
+					if (len > 10000) // 控制在10m范围左右
+					{
+						delLaneGroupbylength(Points1st.back(), m_2ndLaneGroups); // 删除2nd的头
+					}
+				}
+				else
+				{
+					//
+					assert(0);
+				}
+
+			}
+
+		}
+
+#if 0
 
 		std::vector<MapPoint3D64>::iterator ita, itb;
 		// 1st头的处理	
@@ -715,8 +885,7 @@ namespace OMDB
 			}
 		}
 
-
-
+#endif
 
 		return true;
 	}
@@ -825,6 +994,26 @@ namespace OMDB
 		return true;
 	}
 
+#if 0
+	bool GreenbeltUrbanCompiler::isSegmentsCross(std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd)
+	{
+
+		for (int i = 1; i < points1st.size(); i++)
+		{
+			segment_2t line1stSeg(POINT_T(points1st[i - 1],POINT_T(points1st[i]);
+			for (int j = 1; j < points2nd.size(); j++)
+			{
+				segment_2t line2ndSeg(POINT_T(points2nd[j - 1], POINT_T(points2nd[j]);
+				if (bg::intersects(line1stSeg, line2ndSeg))
+				{
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+#endif
 
 
 #ifdef __DEBUG_GREENBELTURBAN__
