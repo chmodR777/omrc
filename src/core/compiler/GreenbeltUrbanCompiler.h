@@ -24,6 +24,8 @@ namespace OMDB
 		bool getGreenbeltLaneGroups(HadGrid* const pGrid, std::vector<HadLaneGroup*>& laneGroups);
 		
 		bool grabOtherLaneGroup(HadGrid* const pGrid,HadLaneGroup* inLaneGroup, HadLaneGroup*& outNearLaneGroup);
+			
+		bool getLaneGroupLocationLine(HadLaneGroup* inLaneGroup, LineString3d& line);
 
 		bool getNearbyLaneGropuByAngle(HadLaneGroup* inLaneGroup, std::vector<HadLaneGroup*>& inoutNearbyLaneGroups);
 
