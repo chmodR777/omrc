@@ -7,6 +7,22 @@
 
 namespace OMDB
 {
+
+	struct grablaneGroupInfo
+	{
+		HadLaneGroup* laneGroup;
+		double distance;
+		double hight;
+	};
+
+	struct PartPoints
+	{
+		std::vector <MapPoint3D64> points1;
+		std::vector <MapPoint3D64> points2;
+	};
+
+
+
 	/// <summary>
 	/// 城市绿化带
 	/// </summary>
@@ -29,7 +45,9 @@ namespace OMDB
 
 		bool getNearbyLaneGropuByAngle(HadLaneGroup* inLaneGroup, std::vector<HadLaneGroup*>& inoutNearbyLaneGroups);
 
-		bool getNearbyLaneGropuByDistance(HadLaneGroup* inLaneGroup, std::vector<HadLaneGroup*>& inNearbyLaneGroups, HadLaneGroup*& outNearLaneGroup);
+		bool getNearbyLaneGropuByDirection(HadLaneGroup* inLaneGroup, std::vector<HadLaneGroup*>& inoutNearbyLaneGroups); 
+
+		bool getNearbyLaneGropuByDistance(HadLaneGroup* inLaneGroup, std::vector<HadLaneGroup*>& inNearbyLaneGroups, HadLaneGroup*& outNearLaneGroup, std::vector<grablaneGroupInfo>& grabLaneGroups);
 				
 		bool expandConnectionLaneGroups(HadLaneGroup* inLaneGroup, const std::vector<HadGrid*>& nearby, std::vector<HadLaneGroup*>& outConnectionLaneGroups);
 
@@ -39,7 +57,17 @@ namespace OMDB
 
 		bool alignLaneGroupsbylength(std::vector<HadLaneGroup*> & in1stLaneGroups, std::vector<HadLaneGroup*>& in2ndLaneGroups);
 
-		bool alignPoints(std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd);
+		bool alignPoints(std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd, std::vector<PartPoints> & partPointslist);
+
+		bool isSameDirection(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd);
+
+		bool isExistIntersect(std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd);
+
+		bool isNeedGreenbeltSurface(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd);
+
+		bool makeGreenbeltData(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd, RdsTile* pTile);
+
+		bool makeGreenbeltSurfaceData(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd, RdsTile* pTile);
 
 #ifdef __DEBUG_GREENBELTURBAN__
 		//debug
