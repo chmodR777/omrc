@@ -806,10 +806,6 @@ namespace OMDB
 			std::reverse(points1st.begin(), points1st.end());
 		}
 
-		std::reverse(points1st.begin(), points1st.end()); // debug从大头开始
-		std::reverse(points2nd.begin(), points2nd.end()); //debug从大头开始
-
-
 		linestring_t  line1st = LINESTRING_T(points1st);
 		linestring_t  line2nd = LINESTRING_T(points2nd);
 
@@ -820,109 +816,28 @@ namespace OMDB
 
 		//	auto alignPointsbyDistance = [&](std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd)
 		//	{
-
-		int indexBegin1 = 0;
-		int indexBegin2 = 0;
-		int indexEnd1 = -1;
-		int indexEnd2 = -1;
-		boolean valid = false;// 未切分
-		std::vector <std::string> indexList;
-		for (int i = 0; i < points1st.size(); i++)
-		{
-			point_t grapedPt;			
-			point_t startPoint1st = POINT_T(points1st[i]);
-			indexEnd1 = i;
-			for (int j = 1; j < points2nd.size(); j++)
-			{		
-				indexEnd2 = j;
-				segment_t seg(POINT_T(points2nd[j - 1]), POINT_T(points2nd[j]));
-				if (GRAP_POINT(startPoint1st, seg, grapedPt, 300))
-				{
-					double length = bg::distance(startPoint1st, grapedPt);  // 最短距离的距离
-					double dheght = abs(startPoint1st.get<2>() - grapedPt.get<2>());  // 高度差
-					if (length < 25000)  // 两边点距离小于25m
-					{
-						if (valid == false) {  // 未切割
-							indexBegin1 = i;
-							indexBegin2 = j;
-							indexEnd1 = i;
-							indexEnd2 = j;
-							
-						}
-						else   // 有切割
-						{
-							indexBegin1 = i;
-							indexBegin2 = j;
-							valid == false;
-						}	
-						
-					}
-					else
-					{
-
-						// 遇到前方有大转弯的情况。投影有可能投到了前方转弯处，而不是对面。暂时考虑用距离（(25000*3)）,和高度差约束在对面。
-						if (length < (25000 * 3) && (dheght < 300))  // 有成对的小于阀值，保留这一对作为分隔。
-						{
-							if (valid == false)  //未切分，进行切分
-							{
-								//indexList.push_back(std::to_string(indexBegin1) + "," + std::to_string(indexEnd1) + "," + std::to_string(indexBegin2) + "," + std::to_string(indexEnd2));
-											
-								indexBegin1 = i;
-								indexBegin2 = j;
-								
-								if(!(indexBegin1 == indexEnd1 && indexBegin2== indexEnd2))
-								{
-									points1.assign(points1st.begin() + indexBegin1, points1st.begin() + indexEnd1);
-									points2.assign(points2nd.begin() + indexBegin2, points2nd.begin() + indexEnd2);
-									PartPoints part;
-									part.points1 = points1;
-									part.points2 = points2;
-									Pointslist.push_back(part);
-									valid = true;
-								}
-								
-
-								
-							}
-							
-						}
-
-					}
-				}
-			}
-		}
-		if (valid == true) {
-			indexList.push_back(std::to_string(indexBegin1) + "," + std::to_string(indexEnd1) + "," + std::to_string(indexBegin2) + "," + std::to_string(indexEnd2));
-		}
-
-
-
-
 		int lastGrapIndex = -1;
-		int firstGrapIndex = -1;
 		for (int i = 0; i < points1st.size(); i++)
 		{
 			point_t grapedPt;
 			points1.push_back(points1st[i]);
 			point_t startPoint1st = POINT_T(points1st[i]);
-			for (int j = 1; j  < points2nd.size(); j++)
+			for (int j = 1; j < points2nd.size(); j++)
 			{
-				segment_t seg(POINT_T(points2nd[j-1]), POINT_T(points2nd[j]));
-				if (GRAP_POINT(startPoint1st,seg, grapedPt, 300))
+				segment_t seg(POINT_T(points2nd[j - 1]), POINT_T(points2nd[j]));
+				if (GRAP_POINT(startPoint1st, seg, grapedPt, 300))
 				{
-					double length = bg::distance(startPoint1st, grapedPt);  // 最短距离的距离
-					double dheght = abs(startPoint1st.get<2>() - grapedPt.get<2>());  // 高度差
-
+					double length = bg::distance(startPoint1st, grapedPt);
 					if (length < 25000)
 					{
 						lastGrapIndex = j;    //  1st最后投影2nd的位置
 						points2.assign(points2nd.begin(), points2nd.begin() + j);// 把每次1st能投影到的2nd都进行保存。相当于2nd跟着1st同步动作。
 					}
 					else
-					{	
+					{
 						// 遇到前方有大转弯的情况。投影有可能投到了前方转弯处，而不是对面。暂时考虑用距离（(25000*3)）,和高度差约束在对面。
-						
-						if (points2.size() >= 2 && length <(25000*3) && (dheght< 300))  // 有成对的小于阀值，保留这一对作为分隔。
+						double dheght = abs(grapedPt.get<2>() - startPoint1st.get<2>());
+						if (points2.size() >= 2 && length < (25000 * 3) && (dheght < 300))  // 有成对的小于阀值，保留这一对作为分隔。
 						{
 							points2.assign(points2nd.begin(), points2nd.begin() + j);
 							PartPoints part;
@@ -931,10 +846,6 @@ namespace OMDB
 							Pointslist.push_back(part);
 							points1.clear();
 							points2.clear();
-						}
-						if (lastGrapIndex==-1)
-						{
-							points1.clear();
 						}
 					}
 				}
@@ -951,7 +862,7 @@ namespace OMDB
 			return false;
 		}
 
-		if (Pointslist.empty()) // 没有过切分记录。
+		if (Pointslist.empty()) // 没有过投影记录。
 		{
 			PartPoints part;
 			part.points1 = points1;
@@ -962,8 +873,8 @@ namespace OMDB
 		{
 			partPointslist = Pointslist;
 		}
-		
-	return true;
+
+		return true;
 }
 
 	bool GreenbeltUrbanCompiler::isSameDirection(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd)
