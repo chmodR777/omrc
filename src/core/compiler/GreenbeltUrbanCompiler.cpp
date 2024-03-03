@@ -65,10 +65,10 @@ namespace OMDB
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227955322690932993)) // 20169163 车道边
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (225249596268814085)) // 20169163 隔离带
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227960749105287425)) // 20169185 
-		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227939496864714753)) // 20169185 大圆转弯
-			if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227964848517353473)) // 20169185 前小后大，后有宽度截断	
+			if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227939496864714753)) // 20169185 大圆转弯
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227964848517353473)) // 20169185 前小后大，后有宽度截断	
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227951732421234945)) // 20169160 补细面 
-		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (235397476841375235)) // 20169122
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (235397476841375235)) // 20169122 全宽
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (236998667245392641)) // 20169122			// 
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (236985947552951041)) // 20169122	
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (224930309251479555)) // 20169122				
@@ -413,7 +413,7 @@ namespace OMDB
 		}
 
 		// 把周边抓到的lanegroup按照距离排序
-		std::sort(grabLaneGroups.begin(), grabLaneGroups.end(), [](grablaneGroupInfo a, grablaneGroupInfo b) {  return a.distance < b.distance; });
+		std::sort(grabLaneGroups.begin(), grabLaneGroups.end(), [](grablaneGroupInfo &a, grablaneGroupInfo &b) {  return a.distance < b.distance; });
 
 		return true;
 	}
@@ -806,72 +806,241 @@ namespace OMDB
 			std::reverse(points1st.begin(), points1st.end());
 		}
 
+		std::reverse(points1st.begin(), points1st.end());
+		std::reverse(points2nd.begin(), points2nd.end());
+
 		linestring_t  line1st = LINESTRING_T(points1st);
 		linestring_t  line2nd = LINESTRING_T(points2nd);
 
-		std::vector <MapPoint3D64> points1;
-		std::vector <MapPoint3D64> points2;
-
 		std::vector<PartPoints> Pointslist;
-
-		//	auto alignPointsbyDistance = [&](std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd)
-		//	{
-		int lastGrapIndex = -1;
-		for (int i = 0; i < points1st.size(); i++)
+		
+		auto getClosestSeginfo = [&](const MapPoint3D64& point,
+			std::vector<MapPoint3D64>& line,
+			int &iIndex1,
+			int &iIndex2,
+			int & width,
+			int &high,
+			MapPoint3D64& grapPt
+			)
 		{
-			point_t grapedPt;
-			points1.push_back(points1st[i]);
-			point_t startPoint1st = POINT_T(points1st[i]);
-			for (int j = 1; j < points2nd.size(); j++)
+
+			struct grapPtinfo
 			{
-				segment_t seg(POINT_T(points2nd[j - 1]), POINT_T(points2nd[j]));
-				if (GRAP_POINT(startPoint1st, seg, grapedPt, 300))
+				int Index1;
+				int Index2;
+				int width;
+				int high;
+				MapPoint3D64 grapPoint;
+			};
+
+			std::vector<grapPtinfo>  grapPtlist;
+
+			point_t grapedPt;
+			point_t startPoint = POINT_T(point);
+			for (int index = 1; index < line.size(); index++)
+			{
+				segment_t seg(POINT_T(line[index -1]), POINT_T(line[index]));
+				if (GRAP_POINT(startPoint, seg, grapedPt, 300))
 				{
-					double length = bg::distance(startPoint1st, grapedPt);
-					if (length < 25000)
-					{
-						lastGrapIndex = j;    //  1st最后投影2nd的位置
-						points2.assign(points2nd.begin(), points2nd.begin() + j);// 把每次1st能投影到的2nd都进行保存。相当于2nd跟着1st同步动作。
-					}
-					else
-					{
-						// 遇到前方有大转弯的情况。投影有可能投到了前方转弯处，而不是对面。暂时考虑用距离（(25000*3)）,和高度差约束在对面。
-						double dheght = abs(grapedPt.get<2>() - startPoint1st.get<2>());
-						if (points2.size() >= 2 && length < (25000 * 3) && (dheght < 300))  // 有成对的小于阀值，保留这一对作为分隔。
-						{
-							points2.assign(points2nd.begin(), points2nd.begin() + j);
-							PartPoints part;
-							part.points1 = points1;
-							part.points2 = points2;
-							Pointslist.push_back(part);
-							points1.clear();
-							points2.clear();
-						}
-					}
+					grapPtinfo pt;
+					pt.Index1 = index-1;
+					pt.Index2 = index;
+					pt.width = bg::distance(startPoint, grapedPt);  // 最短距离的距离
+					pt.high = abs(startPoint.get<2>() - grapedPt.get<2>());  // 高度差
+					pt.grapPoint = MapPoint3D64_make(grapedPt.get<0>(), grapedPt.get<1>(), grapedPt.get<2>());
+					pt.grapPoint.z /= 10;
+					grapPtlist.push_back(pt);  // 大转弯，有可能投到多个。
 				}
 			}
 
-			if (i == points1st.size() - 1 && lastGrapIndex < points2nd.size()) // 1st遍历完。2nd还有剩余, 直接把2剩余的点补上
+			if (grapPtlist.size() == 0)
 			{
-				points2.insert(points2.end(), points2nd.begin() + lastGrapIndex, points2nd.end());
+#ifdef __DEBUG_GREENBELTURBAN__
+				std::vector<MapPoint3D64> lanepoints;
+				lanepoints.push_back(point);
+				PrintPoints(lanepoints, "[Fail]Points :GRAP_POINT:index1[" + std::to_string(iIndex1) + "],index2[" + std::to_string(iIndex2) + "]"); //debug
+				PrintPoints(line, "[Fail]Points :GRAP_POINT"); //debug
+#endif	
+				return false;
 			}
+			else if (grapPtlist.size() > 2)
+			{
+				//大转弯，有可能投到多个。取最短距离的那个
+				std::sort(grapPtlist.begin(), grapPtlist.end(), [](grapPtinfo &a, grapPtinfo &b) {  return a.width < b.width; });
+			}
+
+			iIndex1 = grapPtlist.front().Index1;
+			iIndex2 = grapPtlist.front().Index2;
+			width = grapPtlist.front().width;
+			high = grapPtlist.front().high;
+			grapPt = grapPtlist.front().grapPoint;
+
+			return true;
+
+
+		};
+
+		struct PointsPartIndex
+		{
+			int startIndex;
+			int endIndex;
+		};
+
+		struct Points1st2ndPart
+		{
+			PointsPartIndex point1stPart;
+			PointsPartIndex point2ndPart;
+		};
+
+		std::vector<Points1st2ndPart> Points1st2ndPartList;
+
+
+		PointsPartIndex points1stPart = { -1,-1 };
+		PointsPartIndex points2ndPart = { -1,-1 };
+
+		enum  CUTSTATUS {
+			NONE = 0,
+			NOTCUT,
+			CUT,
+		};
+
+		auto makepart = [&]()
+		{
+			if((points1stPart.endIndex - points1stPart.startIndex >=1)
+				&& (points2ndPart.endIndex - points2ndPart.startIndex >=1))
+			{
+					Points1st2ndPart part;
+					part.point1stPart = points1stPart;
+					part.point2ndPart = points2ndPart;
+					Points1st2ndPartList.push_back(part);
+			}
+		};
+
+
+		CUTSTATUS currentState = NONE;		
+		for (int indexPoints1st = 0; indexPoints1st < points1st.size(); indexPoints1st++)
+		{
+			int indexPoints2ndStart;
+			int indexPoints2ndEnd;
+			int width;
+			int deltaHigh;
+			MapPoint3D64 grapPoint;
+			
+	//		points1.push_back(points1st[i]);
+			if (getClosestSeginfo(points1st[indexPoints1st], points2nd, indexPoints2ndStart, indexPoints2ndEnd, width, deltaHigh, grapPoint))
+			{
+				if (width < 25000)  // 宽大于25m，高度大于10进行切分
+				{
+					if (currentState == NONE)
+					{
+						points1stPart.startIndex = 0;
+						points1stPart.endIndex = indexPoints1st;
+
+						points2ndPart.startIndex = 0;
+						points2ndPart.endIndex = indexPoints2ndEnd;
+					
+					}
+					else if(currentState == NOTCUT)
+					{
+
+						points1stPart.endIndex = indexPoints1st;
+						points2ndPart.endIndex = indexPoints2ndEnd;
+						
+					}
+					else
+					{
+						points1stPart.startIndex = indexPoints1st;
+						points2ndPart.startIndex = indexPoints2ndEnd;
+					}
+
+					currentState = NOTCUT;
+				}
+				else
+				{
+					if (currentState == NONE)
+					{
+						points1stPart.startIndex = indexPoints1st;
+						points2ndPart.startIndex = indexPoints2ndStart;
+					}
+					else if (currentState == NOTCUT)
+					{
+						makepart();
+
+						points1stPart.startIndex = indexPoints1st;
+						points2ndPart.startIndex = indexPoints2ndStart;   // 可以考虑补点
+					
+					}
+					else  //CUTSTATUS = CUT;
+					{
+						points1stPart.startIndex = indexPoints1st;
+						points2ndPart.startIndex = indexPoints2ndStart;
+
+					}
+					currentState = CUT;
+
+				}
+				// 两边尾部的处理  
+				if (indexPoints1st == points1st.size() - 1) // 1到尾了
+				{
+
+					if (indexPoints2ndEnd != points2nd.size() - 1)
+					{
+						if (currentState == NOTCUT)
+						{
+							points1stPart.endIndex = indexPoints1st;
+							points2ndPart.endIndex = points2nd.size() - 1;;
+						}
+						else
+						{
+							points1stPart.endIndex = indexPoints1st; // 后面的不要了
+							points2ndPart.endIndex = indexPoints2ndEnd;
+						}
+					}
+					makepart();
+					break;
+				}
+
+				if (indexPoints2ndEnd == points2nd.size() - 1) // 2到尾了
+				{
+					if (indexPoints1st != points1st.size() - 1)
+					{
+						if (currentState == NOTCUT)
+						{
+							points1stPart.endIndex = points1st.size() - 1;
+							points2ndPart.endIndex = indexPoints2ndEnd;
+						}
+						else
+						{
+							points1stPart.endIndex = indexPoints1st; // 后面的不要了
+							points2ndPart.endIndex = indexPoints2ndEnd;
+						}
+					}
+					makepart();
+					break;
+				}
+
+			}		
 		}
 
-		if (lastGrapIndex == -1)  // 没有过任何小于阀值的投影。说明1st和2nd的宽度都大于阀值。
-		{
-			return false;
-		}
 
-		if (Pointslist.empty()) // 没有过投影记录。
+		if (Points1st2ndPartList.size()>0) // 
 		{
-			PartPoints part;
-			part.points1 = points1;
-			part.points2 = points2;
-			partPointslist.push_back(part);
+			
+			for (auto obj : Points1st2ndPartList)
+			{
+				PartPoints part;
+				std::vector <MapPoint3D64> points1;
+				std::vector <MapPoint3D64> points2;
+				points1.assign(points1st.begin()+obj.point1stPart.startIndex, points1st.begin() + obj.point1stPart.endIndex);
+				points2.assign(points2nd.begin()+obj.point2ndPart.startIndex, points2nd.begin() + obj.point2ndPart.endIndex);
+				part.points1 = points1;
+				part.points2 = points2;
+				partPointslist.push_back(part);
+			}
 		}
 		else
 		{
-			partPointslist = Pointslist;
+			// assert(0);
 		}
 
 		return true;
