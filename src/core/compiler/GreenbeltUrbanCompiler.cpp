@@ -65,13 +65,17 @@ namespace OMDB
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227955322690932993)) // 20169163 车道边
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (225249596268814085)) // 20169163 隔离带
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227960749105287425)) // 20169185 
-			if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227939496864714753)) // 20169185 大圆转弯
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227939496864714753)) // 20169185 大圆转弯
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227964848517353473)) // 20169185 前小后大，后有宽度截断	
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227951732421234945)) // 20169160 补细面 
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (235397476841375235)) // 20169122 全宽
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (236998667245392641)) // 20169122			// 
 		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (236985947552951041)) // 20169122	
-		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (224930309251479555)) // 20169122				
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (224930309251479555)) // 20169122		
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227951800645783809)) // 20169160 	
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227936518917263361)) // 20169193 补面异常	
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (236993604712076033)) // 20169149 未显示出隔离带 
+		//	if ((*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227934782504767489)) // 20169192		// 
 		//	if (
 		//	    (*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (225621966049452293)// 20169187		
 		//	|| (*((OMDB::HadElement*)&(*((OMDB::HadSkeleton*)obj->roadBoundaries[0])))).originId == (227942684338622465)// 20169187
@@ -135,18 +139,26 @@ namespace OMDB
 				{
 					Points1st = PartPointslist[i].points1;
 					Points2nd = PartPointslist[i].points2;
+					double AverageWidth = PartPointslist[i].AverageWidth;
 
+					if (Points1st.empty() || Points2nd.empty())
+					{
+						continue;
+					}
 
 					if (isExistIntersect(Points1st, Points2nd))
 					{
 						continue;
 					}
 
-				//	if (isNeedGreenbeltSurface(Points1st, Points2nd))
-				//	{
-				//		makeGreenbeltSurfaceData(Points1st, Points2nd, pTile);
-				//	}
-				//	else
+					if (AverageWidth < 3000 && isNeedGreenbeltSurface(Points1st, Points2nd)) // 平均宽度小于3m，并且有车道边线的进行补面。
+					{
+#ifdef __DEBUG_GREENBELTURBAN__	
+						PrintInfo("AverageWidth:" + std::to_string(AverageWidth)); //debug
+#endif
+
+						makeGreenbeltSurfaceData(Points1st, Points2nd, pTile);					}
+					else
 					{
 						makeGreenbeltData(Points1st, Points2nd, pTile);
 					}				
@@ -806,9 +818,6 @@ namespace OMDB
 			std::reverse(points1st.begin(), points1st.end());
 		}
 
-		std::reverse(points1st.begin(), points1st.end());
-		std::reverse(points2nd.begin(), points2nd.end());
-
 		linestring_t  line1st = LINESTRING_T(points1st);
 		linestring_t  line2nd = LINESTRING_T(points2nd);
 
@@ -818,7 +827,7 @@ namespace OMDB
 			std::vector<MapPoint3D64>& line,
 			int &iIndex1,
 			int &iIndex2,
-			int & width,
+			double& width,
 			int &high,
 			MapPoint3D64& grapPt
 			)
@@ -828,7 +837,7 @@ namespace OMDB
 			{
 				int Index1;
 				int Index2;
-				int width;
+				double width;
 				int high;
 				MapPoint3D64 grapPoint;
 			};
@@ -846,9 +855,9 @@ namespace OMDB
 					pt.Index1 = index-1;
 					pt.Index2 = index;
 					pt.width = bg::distance(startPoint, grapedPt);  // 最短距离的距离
-					pt.high = abs(startPoint.get<2>() - grapedPt.get<2>());  // 高度差
+					pt.high = abs(startPoint.get<2>() - grapedPt.get<2>())/10;  // 高度差.同MapPoint3D64中z的量级
 					pt.grapPoint = MapPoint3D64_make(grapedPt.get<0>(), grapedPt.get<1>(), grapedPt.get<2>());
-					pt.grapPoint.z /= 10;
+					pt.grapPoint.z /= 10;  //  POINT_T()中*10.  这里需要再/10
 					grapPtlist.push_back(pt);  // 大转弯，有可能投到多个。
 				}
 			}
@@ -858,8 +867,9 @@ namespace OMDB
 #ifdef __DEBUG_GREENBELTURBAN__
 				std::vector<MapPoint3D64> lanepoints;
 				lanepoints.push_back(point);
-				PrintPoints(lanepoints, "[Fail]Points :GRAP_POINT:index1[" + std::to_string(iIndex1) + "],index2[" + std::to_string(iIndex2) + "]"); //debug
-				PrintPoints(line, "[Fail]Points :GRAP_POINT"); //debug
+				PrintPoints(lanepoints, "[Fail]Points :GRAP_POINT"); //debug
+			//	PrintPoints(lanepoints, "[Fail]Points :GRAP_POINT:index1[" + std::to_string(iIndex1) + "],index2[" + std::to_string(iIndex2) + "]"); //debug
+			//	PrintPoints(line, "[Fail]Points :GRAP_POINT"); //debug
 #endif	
 				return false;
 			}
@@ -884,25 +894,29 @@ namespace OMDB
 		{
 			int startIndex;
 			int endIndex;
+			PointsPartIndex() :startIndex(-1), endIndex(-1) {}
 		};
 
 		struct Points1st2ndPart
 		{
 			PointsPartIndex point1stPart;
 			PointsPartIndex point2ndPart;
+			double AverageWidth;
+			Points1st2ndPart():point1stPart(), point2ndPart(), AverageWidth(0){}
 		};
 
 		std::vector<Points1st2ndPart> Points1st2ndPartList;
-
-
-		PointsPartIndex points1stPart = { -1,-1 };
-		PointsPartIndex points2ndPart = { -1,-1 };
+		PointsPartIndex points1stPart;
+		PointsPartIndex points2ndPart;
 
 		enum  CUTSTATUS {
 			NONE = 0,
-			NOTCUT,
-			CUT,
+			NOTCUT, // 小于阀值
+			CUT,   //  大于阀值，开始切割
 		};
+
+		double dTotalWidth = 0;
+		int iWidthConunt = 0;
 
 		auto makepart = [&]()
 		{
@@ -912,24 +926,26 @@ namespace OMDB
 					Points1st2ndPart part;
 					part.point1stPart = points1stPart;
 					part.point2ndPart = points2ndPart;
+					part.AverageWidth = iWidthConunt?(dTotalWidth / iWidthConunt):0;
 					Points1st2ndPartList.push_back(part);
+					dTotalWidth = 0; // 制作了一次隔离带后，下一个隔离带从新统计。
+					iWidthConunt = 0;
 			}
 		};
 
-
-		CUTSTATUS currentState = NONE;		
+		CUTSTATUS currentState = NONE;
 		for (int indexPoints1st = 0; indexPoints1st < points1st.size(); indexPoints1st++)
 		{
 			int indexPoints2ndStart;
 			int indexPoints2ndEnd;
-			int width;
+			double width;
 			int deltaHigh;
 			MapPoint3D64 grapPoint;
 			
 	//		points1.push_back(points1st[i]);
 			if (getClosestSeginfo(points1st[indexPoints1st], points2nd, indexPoints2ndStart, indexPoints2ndEnd, width, deltaHigh, grapPoint))
 			{
-				if (width < 25000)  // 宽大于25m，高度大于10进行切分
+				if (width < 25000 && deltaHigh< 200)  // 宽大于25m，高度差大于200（参照同高速）进行切分，不进行显示
 				{
 					if (currentState == NONE)
 					{
@@ -953,6 +969,8 @@ namespace OMDB
 						points2ndPart.startIndex = indexPoints2ndEnd;
 					}
 
+					dTotalWidth += width; // 累计宽度，用于得到平均宽度
+					iWidthConunt +=1 ;
 					currentState = NOTCUT;
 				}
 				else
@@ -1019,7 +1037,18 @@ namespace OMDB
 					break;
 				}
 
-			}		
+			}
+			else //最后一个点长于对边，有投不上的情况。
+			{
+				if (indexPoints1st == points1st.size() - 1 || indexPoints2ndEnd == points2nd.size() - 1) // 2到尾了
+				{
+					points1stPart.endIndex = points1st.size() - 1;
+					points2ndPart.endIndex = points2nd.size() - 1;
+					makepart();
+					break;
+				}
+			}
+
 		}
 
 
@@ -1031,10 +1060,11 @@ namespace OMDB
 				PartPoints part;
 				std::vector <MapPoint3D64> points1;
 				std::vector <MapPoint3D64> points2;
-				points1.assign(points1st.begin()+obj.point1stPart.startIndex, points1st.begin() + obj.point1stPart.endIndex);
-				points2.assign(points2nd.begin()+obj.point2ndPart.startIndex, points2nd.begin() + obj.point2ndPart.endIndex);
+				points1.assign(points1st.begin()+obj.point1stPart.startIndex, points1st.begin() + obj.point1stPart.endIndex+1 );
+				points2.assign(points2nd.begin()+obj.point2ndPart.startIndex, points2nd.begin() + obj.point2ndPart.endIndex+1);
 				part.points1 = points1;
 				part.points2 = points2;
+				part.AverageWidth = obj.AverageWidth;
 				partPointslist.push_back(part);
 			}
 		}
@@ -1320,6 +1350,11 @@ namespace OMDB
 		}
 	}
 
+	void GreenbeltUrbanCompiler::PrintInfo(std::string info)
+	{
+		info += "\n";
+		m_debugofs << info.c_str();
+	}
 #endif
 
 }

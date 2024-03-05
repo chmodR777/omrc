@@ -19,6 +19,7 @@ namespace OMDB
 	{
 		std::vector <MapPoint3D64> points1;
 		std::vector <MapPoint3D64> points2;
+		double AverageWidth;
 	};
 
 
@@ -74,6 +75,7 @@ namespace OMDB
 		void PrintPoints(std::vector<MapPoint3D64> lanepoints, std::string mark = "");
 		void PrintLaneGroup(HadLaneGroup* inLaneGroup, std::string mark = "");
 		void PrintLaneGroup(std::vector<HadLaneGroup*> LaneGroups, std::string mark = "");
+		void PrintInfo(std::string info = "");
 #endif
 	
 		
