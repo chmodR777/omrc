@@ -3,7 +3,6 @@
 #include <array>
 #include <algorithm>
 #include "geometry/map_point3d64.h"
-#include "tool_kit/boost_geometry_utils.h"
 
 class LineProjectionTriangleSurface
 {

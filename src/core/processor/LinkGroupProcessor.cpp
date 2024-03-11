@@ -8,7 +8,12 @@ namespace OMDB
 		for (auto& lg : pMesh->query(RecordType::DB_HAD_LG_LINK))
 		{
 			DbLgLink* plg = (DbLgLink*)lg;
+			if (plg->markDeleted) { // 删除了,不生成HD数据
+				continue;
+			}
+
 			HadLaneGroup* pGroup = (HadLaneGroup*)pGrid->alloc(ElementType::HAD_LANE_GROUP);
+			pGroup->isGenerated = plg->isGenerated;
 			pGroup->originId = plg->uuid;
 			for (auto& pair : plg->relLinks)
 			{

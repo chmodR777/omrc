@@ -32,7 +32,7 @@ namespace OMDB
 	protected:
 		virtual void compile(HadGrid* const pGrid, const std::vector<HadGrid*>& nearby, RdsTile* pTile) override;
 
-		void saveRdsIntersection(RdsIntersection* pIntersection, Polygon3d& originIntersctPoly, int64& originId);
+		bool saveRdsIntersection(RdsIntersection* pIntersection, Polygon3d& originIntersctPoly, int64& originId, const std::vector<OMDB::LineString3d>& curbLines);
 
 		// 合并相连的停止线
 		void combineNearbyStopLine(ring_2t& tmpRing, rtree_2type& rtree, std::vector<NodeInfo>& originNodes);

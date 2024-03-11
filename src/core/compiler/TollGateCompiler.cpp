@@ -82,9 +82,21 @@ namespace OMDB
 						CQ_ASSERT(pLane != nullptr);
 						pBaseBoundary = pLane->rightBoundary;
 					}
+
+					MapPoint3D64 grapedFt;
 					size_t si = 0, ei = 0;
-					if (!GrapPointAlgorithm::grapOrMatchNearestPoint(m_pTollGate->position, pBaseBoundary->location.vertexes, ptFoot, si, ei, 100.0))
+					auto position = m_pTollGate->position;
+					coordinatesTransform.convert(&position, 1);
+					auto locationVertexes = pBaseBoundary->location.vertexes;
+					coordinatesTransform.convert(locationVertexes.data(), locationVertexes.size());
+					if (GrapPointAlgorithm::grapOrMatchNearestPoint(position, locationVertexes, grapedFt, si, ei, 100.0)) {
+						coordinatesTransform.invert(&grapedFt, 1);
+						ptFoot = grapedFt;
+					}
+					else
+					{
 						ptFoot = _calFootOfPerpendicular(pBaseBoundary->location.vertexes.front(), pBaseBoundary->location.vertexes.back(), m_pTollGate->position);
+					}
 				}
 
 				MapPoint3D64 ptLaneEnd = { 0 };

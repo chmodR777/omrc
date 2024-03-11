@@ -23,10 +23,15 @@ namespace RDS
 		writeSpeedLimitBoard(pTile, pMapboxTile);
 		writePier(pTile, pMapboxTile);
 		writeGreenbelt(pTile, pMapboxTile);
+		writeGreenbeltUrban(pTile, pMapboxTile);
 		writeCrossWalk(pTile, pMapboxTile);
 		writeGroup(pTile, pMapboxTile);
 		writeTrafficLight(pTile, pMapboxTile);
 		writeBridgeTransparency(pTile, pMapboxTile);
+		writeWaitingZone(pTile, pMapboxTile);
+		writeStopLine(pTile, pMapboxTile);
+		writeCurb(pTile, pMapboxTile);
+		writeSpeedBump(pTile, pMapboxTile);
 		// 序列化为字节流
 		size = pMapboxTile->ByteSizeLong();
 		pData = malloc(size);
@@ -611,6 +616,23 @@ namespace RDS
 		}
 	}
 
+	void MapboxWriter::writeGreenbeltUrban(RdsTile* pTile, Tile* pMapboxTile)
+	{
+		std::vector<RdsObject*>& pGreenbelts = pTile->query(EntityType::RDS_GREENBELT_URBAN);
+		Tile_Layer* pLayer = pMapboxTile->add_layers();
+		pLayer->set_name((int)RDS::EntityType::RDS_GREENBELT_URBAN);
+		pLayer->set_version(RdsGreenbeltUrban::version);
+
+		for (auto p : pGreenbelts)
+		{
+			RdsGreenbeltUrban* pGreenbelt = (RdsGreenbeltUrban*)p;
+			Tile_Feature* pFeature = pLayer->add_features();
+			pFeature->set_type(Tile_GeomType_LINESTRING);
+			createMultiLineStrng(pFeature, pGreenbelt->contour.lines.data(), pGreenbelt->contour.lines.size());
+		}
+	}
+
+
 	void MapboxWriter::writeCrossWalk(RdsTile* pTile, Tile* pMapboxTile)
 	{
 		std::vector<RdsObject*>& pCrossWalks = pTile->query(EntityType::RDS_CROSSWALK);
@@ -822,144 +844,105 @@ namespace RDS
         }
 	}
 
-
-	RDS::uint32 MapboxWriter::createCommandInteger(CommandType type, uint32 count)
+	void MapboxWriter::writeWaitingZone(RdsTile* pTile, Tile* pMapboxTile)
 	{
-		return  ((unsigned char)type & 0x7) | (count << 3);
-	}
+		std::vector<RdsObject*>& pLines = pTile->query(EntityType::RDS_WAITING_ZONE);
+		Tile_Layer* pLayer = pMapboxTile->add_layers();
+		pLayer->set_name((int)RDS::EntityType::RDS_WAITING_ZONE);
+		pLayer->set_version(RdsWaitingZone::version);
 
-	uint64 MapboxWriter::createParameterInteger(int64 coordinate)
-	{
-		return (coordinate << 1) ^ (coordinate >> 63);
-	}
+		// keys
+		pLayer->add_keys((int)RDS::AttributeType::WIDTH);
 
-	void MapboxWriter::offsetPoint(const RDS::Point3d& origin, RDS::Point3d& point)
-	{
-		point.x -= origin.x;
-		point.y -= origin.y;
-		point.z -= origin.z;
-	}
+		// values
+		std::map<int32, uint32> values;
 
-	void MapboxWriter::offsetPoints(const RDS::Point3d& origin, RDS::Point3d* points, unsigned int count)
-	{
-		for (size_t i = 0; i < count; i++)
+		for_each(pLines.begin(), pLines.end(), [&](RdsObject* pObject) -> void {
+			RdsWaitingZone* pLine = (RdsWaitingZone*)pObject;
+			values[(int32)pLine->width] = 0;
+			});
+
+		for (std::map<int32, uint32>::iterator pIter = values.begin(); pIter != values.end(); pIter++)
 		{
-			RDS::Point3d& point = points[i];
-			offsetPoint(origin, point);
+			pIter->second = pLayer->values().size();
+			pLayer->add_values()->set_sint_value(pIter->first);
+		}
+
+		for (auto p : pLines)
+		{
+			RdsWaitingZone* pLine = (RdsWaitingZone*)p;
+			Tile_Feature* pFeature = pLayer->add_features();
+			pFeature->set_type(Tile_GeomType_LINESTRING);
+			pFeature->add_tags(0);
+			pFeature->add_tags(values[(int32)pLine->width]);
+			createLineString(pFeature, pLine->location);
 		}
 	}
 
-	void MapboxWriter::offsetLineString(const RDS::Point3d& origin, RDS::LineString3d& line)
+	void MapboxWriter::writeStopLine(RdsTile* pTile, Tile* pMapboxTile)
 	{
-		offsetPoints(origin, line.vertexes.data(), line.vertexes.size());
-	}
+		std::vector<RdsObject*>& pLines = pTile->query(EntityType::RDS_STOP_LINE);
+		Tile_Layer* pLayer = pMapboxTile->add_layers();
+		pLayer->set_name((int)RDS::EntityType::RDS_STOP_LINE);
+		pLayer->set_version(RdsStopLine::version);
 
-	void MapboxWriter::offsetMultiLineString(const RDS::Point3d& origin, RDS::LineString3d* lines, unsigned int count)
-	{
-		for (size_t i = 0; i < count; i++)
+		// keys
+		pLayer->add_keys((int)RDS::AttributeType::STOP_LINE_TYPE);
+
+		// values
+		std::map<int32, uint32> values;
+
+		for_each(pLines.begin(), pLines.end(), [&](RdsObject* pObject) -> void {
+			RdsStopLine* pLine = (RdsStopLine*)pObject;
+			values[(int32)pLine->stopLineType] = 0;
+			});
+
+		for (std::map<int32, uint32>::iterator pIter = values.begin(); pIter != values.end(); pIter++)
 		{
-			RDS::LineString3d& line = lines[i];
-			offsetLineString(origin, line);
+			pIter->second = pLayer->values().size();
+			pLayer->add_values()->set_sint_value(pIter->first);
+		}
+
+		for (auto p : pLines)
+		{
+			RdsStopLine* pLine = (RdsStopLine*)p;
+			Tile_Feature* pFeature = pLayer->add_features();
+			pFeature->set_type(Tile_GeomType_LINESTRING);
+			pFeature->add_tags(0);
+			pFeature->add_tags(values[(int32)pLine->stopLineType]);
+			createLineString(pFeature, pLine->location);
 		}
 	}
 
-	void MapboxWriter::createPoint(Tile_Feature* pFeature, const RDS::Point3d& point)
+	void MapboxWriter::writeCurb(RdsTile* pTile, Tile* pMapboxTile)
 	{
-		pFeature->add_geometry(createCommandInteger(CommandType::MoveTo, 1));
-		pFeature->add_geometry(createParameterInteger(point.x));
-		pFeature->add_geometry(createParameterInteger(point.y));
-		pFeature->add_geometry(createParameterInteger(point.z));
-	}
+		std::vector<RdsObject*>& pCurbs = pTile->query(EntityType::RDS_CURB_URBAN);
+		Tile_Layer* pLayer = pMapboxTile->add_layers();
+		pLayer->set_name((int)RDS::EntityType::RDS_CURB_URBAN);
+		pLayer->set_version(RdsCurbUrban::version);
 
-	void MapboxWriter::createMultiPoint(Tile_Feature* pFeature, RDS::Point3d* points, uint32 count)
-	{
-		if (count == 0)
-			return;
-		
-		createPoint(pFeature, points[0]);
-		for (unsigned int i = 0;i+1 < count;i++)
+		for (auto p : pCurbs)
 		{
-			RDS::Point3d point = points[i+1];
-			offsetPoint(points[i], point);
-			createPoint(pFeature, point);
+			RdsCurbUrban* pCurb = (RdsCurbUrban*)p;
+			Tile_Feature* pFeature = pLayer->add_features();
+			pFeature->set_type(Tile_GeomType_LINESTRING);
+			createLineString(pFeature, pCurb->location);
 		}
 	}
 
-	void MapboxWriter::createLineString(Tile_Feature* pFeature, const RDS::LineString3d& line)
+	void MapboxWriter::writeSpeedBump(RdsTile* pTile, Tile* pMapboxTile)
 	{
-		if (line.vertexes.empty())
-			return;
-		
-		pFeature->add_geometry(createCommandInteger(CommandType::MoveTo, 1));
+		std::vector<RdsObject*>& pSpeedBumps = pTile->query(EntityType::RDS_SPEED_BUMP);
+		Tile_Layer* pLayer = pMapboxTile->add_layers();
+		pLayer->set_name((int)RDS::EntityType::RDS_SPEED_BUMP);
+		pLayer->set_version(RdsSpeedBump::version);
 
-		RDS::Point3d firstPoint = line.vertexes[0];
-		pFeature->add_geometry(createParameterInteger(firstPoint.x));
-		pFeature->add_geometry(createParameterInteger(firstPoint.y));
-		pFeature->add_geometry(createParameterInteger(firstPoint.z));
-
-		pFeature->add_geometry(createCommandInteger(CommandType::LineTo, line.vertexes.size() - 1));
-		for (unsigned int i = 0; i + 1 < line.vertexes.size(); i++)
+		for (auto p : pSpeedBumps)
 		{
-			RDS::Point3d point =  line.vertexes[i+1];
-			offsetPoint(line.vertexes[i], point);
-			pFeature->add_geometry(createParameterInteger(point.x));
-			pFeature->add_geometry(createParameterInteger(point.y));
-			pFeature->add_geometry(createParameterInteger(point.z));
-		}
-	}
-
-	void MapboxWriter::createMultiLineStrng(Tile_Feature* pFeature, RDS::LineString3d* lines, uint32 count)
-	{
-		for (unsigned int i = 0; i < count;i++)
-		{
-			createLineString(pFeature, lines[i]);
-		}
-	}
-
-	void MapboxWriter::createPolygon(Tile_Feature* pFeature, const RDS::Polygon3d& polygon)
-	{
-		if (polygon.vertexes.empty())
-			return;
-		
-		pFeature->add_geometry(createCommandInteger(CommandType::MoveTo, 1));
-
-		RDS::Point3d firstPoint = polygon.vertexes[0];
-		pFeature->add_geometry(createParameterInteger(firstPoint.x));
-		pFeature->add_geometry(createParameterInteger(firstPoint.y));
-		pFeature->add_geometry(createParameterInteger(firstPoint.z));
-
-		pFeature->add_geometry(createCommandInteger(CommandType::LineTo, polygon.vertexes.size() - 1));
-		for (unsigned int i = 0; i + 1 < polygon.vertexes.size(); i++)
-		{
-			RDS::Point3d point = polygon.vertexes[i+1];
-			offsetPoint(polygon.vertexes[i], point);
-			pFeature->add_geometry(createParameterInteger(point.x));
-			pFeature->add_geometry(createParameterInteger(point.y));
-			pFeature->add_geometry(createParameterInteger(point.z));
-		}
-
-		pFeature->add_geometry(createCommandInteger(CommandType::ClosePath, 1));
-	}
-
-	void MapboxWriter::createTriIndex(Tile_Feature* pFeature, const std::vector<uint16>& triangleIndex)
-	{
-		RDS::PolyTriIndex polyTriIndex;
-		auto nSize = triangleIndex.size() / 3;
-		for (auto tIdx = 0; tIdx < nSize; tIdx++) {
-			RDS::TriIndex triIndex;
-			triIndex.index0 = triangleIndex[tIdx * 3 + 0];
-			triIndex.index1 = triangleIndex[tIdx * 3 + 1];
-			triIndex.index2 = triangleIndex[tIdx * 3 + 2];
-			polyTriIndex.indexes.push_back(triIndex);
-		}
-
-		auto& polyTriIndexes = polyTriIndex.indexes;
-		if (!polyTriIndexes.empty())
-		{
-			LineString3d poly2TriIndex;
-			poly2TriIndex.vertexes.resize(polyTriIndexes.size());
-			memcpy(poly2TriIndex.vertexes.data(), polyTriIndexes.data(), sizeof(TriIndex) * polyTriIndexes.size());
-			createLineString(pFeature, poly2TriIndex);
+			RdsSpeedBump* pSpeedBump = (RdsSpeedBump*)p;
+			Tile_Feature* pFeature = pLayer->add_features();
+			pFeature->set_type(Tile_GeomType_POLYGON);
+			createPolygon(pFeature, pSpeedBump->contour);
 		}
 	}
 

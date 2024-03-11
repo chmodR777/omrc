@@ -23,17 +23,6 @@ namespace OMDB
 		for_each(nearby.begin(), nearby.end(), [&](HadGrid* g)->void {nearbyGrids.push_back(g); });
 		matchNearbyRoadBoundary(pGrid, nearbyGrids, forwardGroupTable, backwardGroupTable);
 
-
-//		point_2t  p(12139597115, 3117734432);
-
-//		+[0]{ pos = {lon = 12140032736 lat = 3116616408 } z = 1484 }	MapPoint3D64
-//			+ [1]{ pos = {lon = 12139969425 lat = 3116719902 } z = 1484 }	MapPoint3D64
-//+ [2]{ pos = {lon = 12139964663 lat = 3116727355 } z = 1489 }	MapPoint3D64//
-
-			point_2t  p1(12140032,3116616);
-			point_2t  p2(12139969,3116719);
-			point_2t  p3(12139964,3116727);
-
 		std::set<int64> visitedIds;
 		for (auto obj : pGrid->query(ElementType::HAD_ROAD_BOUNDARY))
 		{

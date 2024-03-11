@@ -59,8 +59,10 @@ namespace RDS
 		writePier(pDb, tile->query(EntityType::RDS_PIER));
 		writeGreenbelt(pDb, tile->query(EntityType::RDS_GREENBELT));
 		writeGroup(pDb, tile->query(EntityType::RDS_GROUP));
+		writeCrossWalk(pDb, tile->query(EntityType::RDS_CROSSWALK));
 		writeRelationship(pDb, tile->query(EntityType::RDS_RELATIONSHIP));
 		writeTrafficLights(pDb, tile->query(EntityType::RDS_TRAFFICLIGHT));
+		writeWaitingZone(pDb, tile->query(EntityType::RDS_WAITING_ZONE));
 
 		status = sqlite3_close(pDb);
 		if (status != SQLITE_OK)
@@ -1269,7 +1271,7 @@ namespace RDS
 		}
 
 		sqlite3_stmt* stmt;
-		sql = "INSERT INTO RDS_CROSSWALK (ID,DIRECTION,GEOMETRY) VALUES (?,?,?)";
+		sql = "INSERT INTO RDS_CROSSWALK (ID,GEOMETRY) VALUES (?,?)";
 		status = sqlite3_prepare_v2(pDb, sql, strlen(sql), &stmt, NULL);
 		if (status != SQLITE_OK)
 			return;
@@ -1287,8 +1289,8 @@ namespace RDS
 			sqlite3_reset(stmt);
 			sqlite3_clear_bindings(stmt);
 			sqlite3_bind_int64(stmt, 1, pCrosswalk->id);
-			sqlite3_bind_int64(stmt, 2, pCrosswalk->zebraHeading);
-			sqlite3_bind_blob(stmt, 3, blob, size, free);
+			//sqlite3_bind_int64(stmt, 2, pCrosswalk->zebraHeading);
+			sqlite3_bind_blob(stmt, 2, blob, size, free);
 
 			status = sqlite3_step(stmt);
 			if (status != SQLITE_DONE && status != SQLITE_ROW)
@@ -1437,5 +1439,74 @@ namespace RDS
 			return;
 		}
 	}
+	void SpatialiteWriter::writeWaitingZone(sqlite3* pDb, const std::vector<RdsObject*>& lines)
+	{
+		const char* sql = "CREATE TABLE RDS_WAITING_ZONE("
+			"ID                INTEGER PRIMARY KEY      NOT NULL, "
+			"LINEWIDTH			   INTERGER                );";
+
+		char* msg;
+		int status = sqlite3_exec(pDb, sql, NULL, 0, &msg);
+		if (status != SQLITE_OK)
+		{
+			sqlite3_free(msg);
+			return;
+		}
+
+		sql = "SELECT AddGeometryColumn('RDS_WAITING_ZONE', 'GEOMETRY',0, 'LINESTRINGZ')";
+		status = sqlite3_exec(pDb, sql, NULL, NULL, &msg);
+		if (status != SQLITE_OK)
+		{
+			sqlite3_free(msg);
+			return;
+		}
+
+		sql = "BEGIN";
+		status = sqlite3_exec(pDb, sql, NULL, NULL, &msg);
+		if (status != SQLITE_OK)
+		{
+			sqlite3_free(msg);
+			return;
+		}
+
+
+		sqlite3_stmt* stmt;
+		sql = "INSERT INTO RDS_WAITING_ZONE (ID,LINEWIDTH,GEOMETRY) VALUES (?,?,?)";
+		status = sqlite3_prepare_v2(pDb, sql, strlen(sql), &stmt, NULL);
+		if (status != SQLITE_OK)
+			return;
+
+		for (int i = 0; i < lines.size(); i++)
+		{
+			RdsLine* pLine = (RdsLine*)lines[i];
+			gaiaGeomCollPtr geo = gaiaAllocGeomCollXYZ();
+			geo->Srid = 0;
+			writeLineString(geo, pLine->location);
+			unsigned char* blob;
+			int size;
+			gaiaToSpatiaLiteBlobWkb(geo, &blob, &size);
+			gaiaFreeGeomColl(geo);
+			sqlite3_reset(stmt);
+			sqlite3_clear_bindings(stmt);
+			sqlite3_bind_int64(stmt, 1, pLine->id);
+			sqlite3_bind_int(stmt, 2, (int)pLine->width);
+			sqlite3_bind_blob(stmt, 3, blob, size, free);
+
+			status = sqlite3_step(stmt);
+			if (status != SQLITE_DONE && status != SQLITE_ROW)
+			{
+				break;
+			}
+		}
+		sqlite3_finalize(stmt);
+		sql = "COMMIT";
+		status = sqlite3_exec(pDb, sql, NULL, NULL, &msg);
+		if (status != SQLITE_OK)
+		{
+			sqlite3_free(msg);
+			return;
+		}
+	}
+
 
 }

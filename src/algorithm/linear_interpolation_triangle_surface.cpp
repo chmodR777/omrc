@@ -491,16 +491,48 @@ bool LinearInterpolationTriangleSurface::getTrianglesBySegment(
 	min_corner.set<0>(min_corner.get<0>() - offset);
 	min_corner.set<1>(min_corner.get<1>() - offset);
 	std::vector<size_t> triangleIds;
+	std::vector<Triangle> tmpTriangles;
+	std::vector<size_t> tmpIds;
 	rtree.query(bgi::intersects(segBox),
 		boost::make_function_output_iterator([&](size_t const& id) {
 			auto& triangle = polyTriangles[id];
-			if (bg::intersects(segment2T, triangle.trianglePoly)) {
-				point_t nearbyPoint = getClosestPoint(triangle, segment.first);
-				if (std::abs(segment.first.get<2>() - nearbyPoint.get<2>()) < MAX_TRIANGLE_HEIGHT) {
-					triangleIds.push_back(id);
+			tmpTriangles.push_back(triangle);
+			tmpIds.push_back(id);
+			}));
+
+	for(size_t i = 0; i < tmpIds.size(); ++i)
+	{
+		auto& triangle = tmpTriangles.at(i);
+		std::vector<point_2t> intersectPoints;
+		linestring_2t clipper;
+		clipper.push_back(P3_P2(segment.first));
+		clipper.push_back(P3_P2(segment.second));
+		bg::intersection(triangle.trianglePoly, clipper, intersectPoints);
+		if (!intersectPoints.empty()) 
+		{
+			for (auto& pc : intersectPoints) 
+			{
+				//begin: get z value by segment_t
+				auto& seg = segment2T;
+				auto& originSeg = segment;
+				int64 l = bg::length(seg);
+				if (l == 0)
+					continue;
+				double w1 = bg::distance(pc, seg.first) / l;
+				double w2 = 1.0 - w1;
+				int64 z1 = originSeg.first.get<2>() * w2;
+				int64 z2 = originSeg.second.get<2>() * w1;
+				int64 pz = z1 + z2;
+				//end: get z value by segment_t
+
+				point_t relPoint = point_t(pc.get<0>(), pc.get<1>(), pz);
+				point_t nearbyPoint = getClosestPoint(triangle, relPoint);
+				if (std::abs(relPoint.get<2>() - nearbyPoint.get<2>()) < MAX_TRIANGLE_HEIGHT) {
+					triangleIds.push_back(tmpIds.at(i));
 				}
 			}
-		}));
+		}
+	}
 
 	for (auto triangleId : triangleIds) {
 		auto& triangle = polyTriangles[triangleId];

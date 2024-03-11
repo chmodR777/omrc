@@ -31,20 +31,23 @@ namespace OMDB
 						tmpNextGroup->inIntersection == 0 &&
 						tmpPrevGroup->inIntersection == 0)
 					{
-						LineString3d leftSide, rightSide, nextLeftSide, nextRightSide;
+						LineString3d leftSide, rightSide, nextLeftSide, nextRightSide, prevLeftSide, prevRightSide;
 						getLaneGroupBoundary(pGroup, leftSide, rightSide, false);
 						getLaneGroupBoundary(tmpNextGroup, nextLeftSide, nextRightSide, false);
-						auto leftDis = leftSide.vertexes.back().pos.distance(nextLeftSide.vertexes.front().pos);
-						auto rightDis = rightSide.vertexes.back().pos.distance(nextRightSide.vertexes.front().pos);
-						if (leftDis > disTol && rightDis < disTol)
+						getLaneGroupBoundary(tmpPrevGroup, prevLeftSide, prevRightSide, false);
+						auto frontLeftDis = leftSide.vertexes.back().pos.distance(nextLeftSide.vertexes.front().pos);
+						auto frontRightDis = rightSide.vertexes.back().pos.distance(nextRightSide.vertexes.front().pos);
+						auto backLeftDis = prevLeftSide.vertexes.back().pos.distance(leftSide.vertexes.front().pos);
+						auto backRightDis = prevRightSide.vertexes.back().pos.distance(rightSide.vertexes.front().pos);
+						if ((frontLeftDis > disTol && frontRightDis < disTol) && (backLeftDis > disTol && backRightDis < disTol))
 						{
-							hullGroups.push_back(pGroup);
-							isLeftHulls.push_back(true);
+							compilerData.hullGroups.push_back(pGroup);
+							compilerData.isLeftHulls.push_back(true);
 						}
-						else if (leftDis < disTol && rightDis > disTol)
+						else if ((frontLeftDis < disTol && frontRightDis > disTol) && (backLeftDis < disTol && backRightDis > disTol))
 						{
-							hullGroups.push_back(pGroup);
-							isLeftHulls.push_back(false);
+							compilerData.hullGroups.push_back(pGroup);
+							compilerData.isLeftHulls.push_back(false);
 						}
 					}
 				}
@@ -64,13 +67,13 @@ namespace OMDB
 							auto rightDis = rightSide.vertexes.front().pos.distance(prevRightSide.vertexes.back().pos);
 							if (leftDis > disTol && rightDis < disTol)
 							{
-								hullGroups.push_back(pGroup);
-								isLeftHulls.push_back(true);
+								compilerData.hullGroups.push_back(pGroup);
+								compilerData.isLeftHulls.push_back(true);
 							}
 							else if (leftDis < disTol && rightDis > disTol)
 							{
-								hullGroups.push_back(pGroup);
-								isLeftHulls.push_back(false);
+								compilerData.hullGroups.push_back(pGroup);
+								compilerData.isLeftHulls.push_back(false);
 							}
 						}
 					}
@@ -90,13 +93,13 @@ namespace OMDB
 							auto rightDis = rightSide.vertexes.back().pos.distance(nextRightSide.vertexes.front().pos);
 							if (leftDis > disTol && rightDis < disTol)
 							{
-								hullGroups.push_back(pGroup);
-								isLeftHulls.push_back(true);
+								compilerData.hullGroups.push_back(pGroup);
+								compilerData.isLeftHulls.push_back(true);
 							}
 							else if (leftDis < disTol && rightDis > disTol)
 							{
-								hullGroups.push_back(pGroup);
-								isLeftHulls.push_back(false);
+								compilerData.hullGroups.push_back(pGroup);
+								compilerData.isLeftHulls.push_back(false);
 							}
 						}
 					}
@@ -107,6 +110,8 @@ namespace OMDB
 		for each (auto & e in elements)
 		{
 			HadLaneGroup* pCurrentGroup = (HadLaneGroup*)e;
+
+			m_rdsGroup = queryGroup(pCurrentGroup->originId, pTile);
 
 			//判断是否为普通路
 			if (CompileSetting::instance()->isNotCompileUrbanData)
@@ -141,19 +146,21 @@ namespace OMDB
 		if (pGroup->roadBoundaries.size() != 2 && pGroup->laneBoundaries.size() < 2)
 			return;
 
-		RdsGroup* pRdsGroup = queryGroup(pGroup->originId, pTile);
 		if (pGroup->next.empty())
 		{
-			pRdsGroup->objects.push_back(createRoadFace(pTile, pGroup));
+			auto tmpItem = createRoadFace(pTile, pGroup);
+			if(m_rdsGroup)
+				m_rdsGroup->objects.push_back(tmpItem);
 			return;
 		}
 
 		HadLaneGroup* pNextFirstLaneGroup = (HadLaneGroup*)pGroup->next[0];
 
-		// if (pNextFirstLaneGroup->roadBoundaries.size() != 2)
 		if (pNextFirstLaneGroup->roadBoundaries.size() != 2 && pNextFirstLaneGroup->laneBoundaries.size() < 2)
 		{
-			pRdsGroup->objects.push_back(createRoadFace(pTile, pGroup));
+			auto tmpItem = createRoadFace(pTile, pGroup);
+			if(m_rdsGroup)
+				m_rdsGroup->objects.push_back(tmpItem);
 			return;
 		}
 
@@ -164,7 +171,9 @@ namespace OMDB
 
 		connectRoadFaceAtPreviousStraightRoad(pGroup, leftSide, rightSide);
 
-		pRdsGroup->objects.push_back(createRoadFace(pTile, pGroup, leftSide, rightSide));
+		auto tmpItem = createRoadFace(pTile, pGroup, leftSide, rightSide);
+		if(m_rdsGroup)
+			m_rdsGroup->objects.push_back(tmpItem);
 	}
 
 	void RoadCompiler::connectIntersectionRoad(
@@ -720,7 +729,7 @@ namespace OMDB
 		std::vector<LineString3d> tmpLines;
 		tmpLines.push_back(leftSide);
 		tmpLines.push_back(rightSide);
-		saveRdsRoad(pRoad, tmpLines, isRoundabout(pGroup));
+		saveRdsRoad(pRoad, tmpLines, isRoundabout(pGroup), pGroup->originId);
 		return pRoad;
 	}
 
@@ -761,7 +770,7 @@ namespace OMDB
 	}
 
 
-	void RoadCompiler::saveRdsRoad(RdsRoad* pRoad, std::vector<LineString3d>& originRoadLines, bool isRoundabout)
+	void RoadCompiler::saveRdsRoad(RdsRoad* pRoad, std::vector<LineString3d>& originRoadLines, bool isRoundabout, const int64& originId)
 	{
 		if (pRoad->contour.lines.empty())
 			return;
@@ -769,6 +778,7 @@ namespace OMDB
 		if (originRoadLines.size() == 2)
 		{
 			rdsRoadInfo tmp;
+			tmp.originId = originId;
 			tmp._road = pRoad;
 			tmp._originRoadLines = originRoadLines;
 			std::vector<MapPoint3D64> tmpPoly;
@@ -793,6 +803,7 @@ namespace OMDB
 			bg::correct(tmp._roadPoly2T);
 			compilerData.m_rdsRoads.push_back(tmp);
 			compilerData.m_rdsRoadBoxes.push_back(tmp._roadBox2T);
+			compilerData.m_originIdToRdsRoadInfo.emplace(originId, tmp);
 		}
 	}
 }

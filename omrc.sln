@@ -9,6 +9,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "omrc", "omrc.vcxproj", "{55
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cq_stdlib", "..\cq_stdlib\cq_stdlib_vs2019.vcxproj", "{094757F0-7496-4BA1-9C8F-F3CF846ECB89}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "navi_rds_test", "..\navi_rds\navi_rds_test_vs2019.vcxproj", "{18A441D9-957D-47B1-90CE-70660CCA813A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B245E549-8E24-4ACF-A8B7-075777BDE93A} = {B245E549-8E24-4ACF-A8B7-075777BDE93A}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -39,6 +44,14 @@ Global
 		{094757F0-7496-4BA1-9C8F-F3CF846ECB89}.Release|x64.Build.0 = Release|x64
 		{094757F0-7496-4BA1-9C8F-F3CF846ECB89}.Release|x86.ActiveCfg = Release|Win32
 		{094757F0-7496-4BA1-9C8F-F3CF846ECB89}.Release|x86.Build.0 = Release|Win32
+		{18A441D9-957D-47B1-90CE-70660CCA813A}.Debug|x64.ActiveCfg = Release|x64
+		{18A441D9-957D-47B1-90CE-70660CCA813A}.Debug|x64.Build.0 = Release|x64
+		{18A441D9-957D-47B1-90CE-70660CCA813A}.Debug|x86.ActiveCfg = Release|Win32
+		{18A441D9-957D-47B1-90CE-70660CCA813A}.Debug|x86.Build.0 = Release|Win32
+		{18A441D9-957D-47B1-90CE-70660CCA813A}.Release|x64.ActiveCfg = Release|x64
+		{18A441D9-957D-47B1-90CE-70660CCA813A}.Release|x64.Build.0 = Release|x64
+		{18A441D9-957D-47B1-90CE-70660CCA813A}.Release|x86.ActiveCfg = Release|Win32
+		{18A441D9-957D-47B1-90CE-70660CCA813A}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1242,7 +1242,7 @@ namespace OMDB
         if (n < 3)
             return;
         std::vector<vector_2t> tmpDirs;
-        if (isKneePoint(gorePoly[0], gorePoly[1], gorePoly[n - 1]))
+        if (isKneePoint(gorePoly[0], gorePoly[1], gorePoly[n - 1], 0.7))
         {
             kneePoint tmpKneePoint;
             tmpKneePoint._point = gorePoly[0];
@@ -1252,7 +1252,7 @@ namespace OMDB
         }
         for (size_t i = 1; i < n - 1; ++i)
         {
-            if (isKneePoint(gorePoly[i], gorePoly[i - 1], gorePoly[i + 1]))
+            if (isKneePoint(gorePoly[i], gorePoly[i - 1], gorePoly[i + 1], 0.7))
             {
                 kneePoint tmpKneePoint;
                 tmpKneePoint._point = gorePoly[i];
@@ -1303,18 +1303,6 @@ namespace OMDB
             return;
         }
         return;
-    }
-
-    bool GuardrailCompiler::isKneePoint(
-        const point_2t& currentPoint,
-        const point_2t& prevPoint,
-        const point_2t& nextPoint)
-    {
-        vector_2t d1 = S2_V2(prevPoint, currentPoint);
-        vector_2t d2 = S2_V2(currentPoint, nextPoint);
-        if (bg::dot_product(V2_N(d1), V2_N(d2)) < 0.7)
-            return true;
-        return false;
     }
 
     ring_2t GuardrailCompiler::getExpandPolyByVector(

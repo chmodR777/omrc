@@ -253,6 +253,29 @@ inline point_2t P3_P2(const point_t& p3)
     return point_2t(p3.get<0>(), p3.get<1>());
 }
 
+inline point_t P2_P3(const point_2t& p2)
+{
+	return point_t(p2.get<0>(), p2.get<1>(), 0);
+}
+
+inline linestring_2t L3_L2(const linestring_t& l3)
+{
+	linestring_2t line;
+	for (auto& p : l3) {
+		line.push_back(P3_P2(p));
+	}
+	return line;
+}
+
+inline linestring_t L2_L3(const linestring_2t& l2)
+{
+	linestring_t line;
+	for (auto& p : l2) {
+		line.push_back(P2_P3(p));
+	}
+	return line;
+}
+
 inline segment_2t S3_S2(const segment_t& s3)
 {
     return segment_2t(P3_P2(s3.first), P3_P2(s3.second));
@@ -350,12 +373,30 @@ inline box_2t BOX_2T(const segment_t& s3)
 	return box;
 }
 
+inline box_2t BOX_2T(const point_t& pt, const int64 r)
+{
+	box_2t box = box_2t(
+		point_2t(pt.get<0>() - r, pt.get<1>() - r),
+		point_2t(pt.get<0>() + r, pt.get<1>() + r));
+	return box;
+}
+
 inline segment_2t SEGMENT_2T_EX(const segment_2t& seg, const double length)
 {
     vector_2t v = V2_N(S2_V2(seg.first, seg.second));
     point_2t pa = point_2t(seg.first.get<0>() - v.get<0>() * length, seg.first.get<1>() - v.get<1>() * length);
     point_2t pb = point_2t(seg.second.get<0>() + v.get<0>() * length, seg.second.get<1>() + v.get<1>() * length);
     return segment_2t(pa, pb);
+}
+
+inline point_t POINT_EX(const point_t& pt, const vector_t& v, const double length)
+{
+	vector_t vn = V3_N(v);
+	point_t p = point_t(
+		pt.get<0>() + vn.get<0>() * length,
+		pt.get<1>() + vn.get<1>() * length,
+		pt.get<2>() + vn.get<2>() * length);
+	return p;
 }
 
 inline segment_t SEGMENT_EX(const segment_t& seg, const double length)
@@ -547,4 +588,17 @@ forceinline point_t calculateBezierPoint(
 	double y = (1 - t) * (1 - t) * p0.get<1>() + 2 * (1 - t) * t * p1.get<1>() + t * t * p2.get<1>();
 	double z = (1 - t) * (1 - t) * p0.get<2>() + 2 * (1 - t) * t * p1.get<2>() + t * t * p2.get<2>();
 	return point_t(x, y, z);
+}
+
+ forceinline bool isKneePoint(
+	const point_2t& currentPoint,
+	const point_2t& prevPoint,
+	const point_2t& nextPoint,
+	const double& factor)
+{
+	vector_2t d1 = S2_V2(prevPoint, currentPoint);
+	vector_2t d2 = S2_V2(currentPoint, nextPoint);
+	if (bg::dot_product(V2_N(d1), V2_N(d2)) < factor)
+		return true;
+	return false;
 }

@@ -4,7 +4,6 @@
 #include <algorithm>
 #include "math3d/vector_math.h"
 #include "map_point3d64_converter.h"
-#include "tool_kit/boost_geometry_utils.h"
 #include "algorithm/polygon_triangularizer.h"
 
 class LinearInterpolationTriangleSurface

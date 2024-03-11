@@ -57,36 +57,23 @@ namespace OMDB
 					continue;
 			}
 
-			if (CompileSetting::instance()->isDaimlerShangHai)
-			{
-				if (pLaneBoundary->turnwaitingPAs.empty() && inIntersectionBoundary.count(pLaneBoundary))
-					continue;
-			}
-			
 			//待转区边界线
-			if (CompileSetting::instance()->isCompileTurnWaiting)
+			if (!pLaneBoundary->turnwaitingPAs.empty())
 			{
-				if (!pLaneBoundary->turnwaitingPAs.empty())
+				std::vector<RangeF> rangeOffsets;
+				mergeTurnwaitingPAs(pLaneBoundary->turnwaitingPAs, rangeOffsets);
+
+				for (auto offet : rangeOffsets)
 				{
+					LineString3d subLocation;
+					truncateLineSegment(pLaneBoundary->location.vertexes, offet.lower, offet.upper, subLocation.vertexes);
 
-					std::vector<RangeF> rangeOffsets;
-					mergeTurnwaitingPAs(pLaneBoundary->turnwaitingPAs, rangeOffsets);
+					RdsWaitingZone* pLine = (RdsWaitingZone*)createObject(pTile, EntityType::RDS_WAITING_ZONE);
+					pLine->width = 0;
 
-					for (auto offet : rangeOffsets)
-					{
-						LineString3d subLocation;
-						truncateLineSegment(pLaneBoundary->location.vertexes, offet.lower, offet.upper, subLocation.vertexes);
-
-						RdsLine* pLine = (RdsLine*)createObject(pTile, EntityType::RDS_LINE);
-						pLine->lineType = RdsLine::LineType::eShortThickDot;
-						pLine->color = RdsLine::LineColor::eWhite;
-						pLine->width = 0;
-						pLine->side = 0;
-
-						convert(subLocation, pLine->location);
-					}
-					continue;
+					convert(subLocation, pLine->location);
 				}
+				continue;
 			}
 
 			if (!isCreateRdsForIntersection(pGrid, tmpGroups))
@@ -102,7 +89,10 @@ namespace OMDB
 				LineString3d leftSide, rightSide;
 				auto pLaneGroup = pLaneBoundary->linkGroups.begin()->second;
 				getLaneGroupBoundary(pLaneGroup, leftSide, rightSide);
-				makeLaneGroupPolygon(leftSide.vertexes, rightSide.vertexes, polygon);
+				if (!leftSide.vertexes.empty() && !rightSide.vertexes.empty())
+				{
+					makeLaneGroupPolygon(leftSide.vertexes, rightSide.vertexes, polygon);
+				}
 			}
 
 			std::set<int> markWidths;
@@ -158,7 +148,7 @@ namespace OMDB
 								coordinatesTransform, surfaceTriangles, surfaceRTree2T, subLocation.vertexes, lineOnRoadSurface);
 							subLocation.vertexes = lineOnRoadSurface;
 
-							saveRdsLine(pLine, subLocation);
+							saveRdsLine(subLocation);
 							convert(subLocation, pLine->location);
 							for (auto iter : pLaneBoundary->linkGroups) {
 								RdsGroup* pRdsGroup = queryGroup(iter.first, pTile);
@@ -197,7 +187,7 @@ namespace OMDB
 						coordinatesTransform, surfaceTriangles, surfaceRTree2T, location.vertexes, lineOnRoadSurface);
 					location.vertexes = lineOnRoadSurface;
 
-					saveRdsLine(pLine, location);
+					saveRdsLine(location);
 					convert(location, pLine->location);
 					for (auto iter : pLaneBoundary->linkGroups) {
 						RdsGroup* pRdsGroup = queryGroup(iter.first, pTile);
@@ -225,7 +215,7 @@ namespace OMDB
 					coordinatesTransform, surfaceTriangles, surfaceRTree2T, location.vertexes, lineOnRoadSurface);
 				location.vertexes = lineOnRoadSurface;
 
-				saveRdsLine(pLine, location);
+				saveRdsLine(location);
 				convert(location, pLine->location);
 				for (auto iter : pLaneBoundary->linkGroups) {
 					RdsGroup* pRdsGroup = queryGroup(iter.first, pTile);
@@ -395,7 +385,7 @@ namespace OMDB
 		}
 	}
 
-	void LineCompiler::saveRdsLine(RdsLine* pLine, LineString3d& location)
+	void LineCompiler::saveRdsLine(LineString3d& location)
 	{
 		//去重
 		auto ip = std::unique(location.vertexes.begin(), location.vertexes.end(), mapPoint3D64_compare);
@@ -404,7 +394,6 @@ namespace OMDB
 			return;
 
 		rdsLineInfo tmp;
-		tmp._line = pLine;
 		tmp._originPoints = location.vertexes;
 		std::vector<MapPoint3D64> tmpLine = location.vertexes;
 		coordinatesTransform.convert(tmpLine.data(), tmpLine.size());
@@ -413,30 +402,10 @@ namespace OMDB
 
 		//push line
 		compilerData.m_rdsLines.push_back(tmp);
+		compilerData.m_rdsLineBoxes.push_back(tmp._lineBox2T);
+		for (auto it = bg::segments_begin(tmp._linePoints); it != bg::segments_end(tmp._linePoints); ++it)
+			compilerData.gridLines.push_back(segment_t(*it->first, *it->second));
 	}
-
-	void LineCompiler::saveRdsStopLine(RdsLine* pLine, LineString3d& location)
-	{
-		//去重
-		auto ip = std::unique(location.vertexes.begin(), location.vertexes.end(), mapPoint3D64_compare);
-		location.vertexes.resize(std::distance(location.vertexes.begin(), ip));
-		if (location.vertexes.size() < 2)
-			return;
-
-		rdsLineInfo tmp;
-		tmp._line = pLine;
-		tmp._originPoints = location.vertexes;
-		std::vector<MapPoint3D64> tmpLine = location.vertexes;
-		coordinatesTransform.convert(tmpLine.data(), tmpLine.size());
-		tmp._lineBox2T = BOX_2T(tmpLine);
-		tmp._linePoints = LINESTRING_T(tmpLine);
-
-		//push stopline
-		compilerData.m_rdsStopLineBoxes.push_back(tmp._lineBox2T);
-		compilerData.m_rdsStopLines.push_back(tmp);
-	}
-
-
 
     void LineCompiler::compileStopLocation(HadGrid* const pGrid, const std::vector<Triangle>& surfaceTriangles, const rtree_type_2box& surfaceRTree2T, RdsTile* pTile)
 	{
@@ -445,16 +414,28 @@ namespace OMDB
 		for (auto obj : pGrid->query(ElementType::HAD_LANE))
 		{
 			HadLane* pLane = (HadLane*)obj;
-			if (pLane->linkGroup && pLane->linkGroup->inIntersection 
-				&& pLane->leftBoundary->turnwaitingPAs.empty()
-				&& pLane->rightBoundary->turnwaitingPAs.empty()
-				)
+			if (pLane->linkGroup && pLane->linkGroup->inIntersection)
 			{
-				for (HadObject* obj : pLane->objects)
+				bool leftBoundaryBool = false;
+				bool rightBoundaryBool = false;
+				if (pLane->leftBoundary)
 				{
-					if (obj->objectType == ElementType::HAD_OBJECT_STOPLOCATION)
+					if (pLane->leftBoundary->turnwaitingPAs.empty())
+						leftBoundaryBool = true;
+				}
+				if (pLane->rightBoundary)
+				{
+					if (pLane->rightBoundary->turnwaitingPAs.empty())
+						rightBoundaryBool = true;
+				}
+				if (leftBoundaryBool && rightBoundaryBool)
+				{
+					for (HadObject* obj : pLane->objects)
 					{
-						inIntersectionObjects.insert(obj);
+						if (obj->objectType == ElementType::HAD_OBJECT_STOPLOCATION)
+						{
+							inIntersectionObjects.insert(obj);
+						}
 					}
 				}
 			}
@@ -462,12 +443,6 @@ namespace OMDB
 
 		for (auto obj : pGrid->query(ElementType::HAD_OBJECT_STOPLOCATION))
 		{
-			if (CompileSetting::instance()->isDaimlerShangHai)
-			{
-				if (inIntersectionObjects.count((HadObject*)obj))
-					continue;
-			}
-
 			HadStopLocation* pStopLocation = (HadStopLocation*)obj;
 			LineString3d location = pStopLocation->location;
 
@@ -475,13 +450,6 @@ namespace OMDB
 			if (CompileSetting::instance()->isNotCompileUrbanData)
 			{
 				if (!isProDataLevel(pStopLocation->laneGroups))
-					continue;
-			}
-
-
-			if (!CompileSetting::instance()->isCompileTurnWaiting)
-			{
-				if (!isCreateRdsForIntersection(pGrid, pStopLocation->laneGroups))
 					continue;
 			}
 
@@ -494,16 +462,12 @@ namespace OMDB
 			// 裁减路面外的停止线
 			clipOutOfRoadFace(surfaceTriangles, surfaceRTree2T, location.vertexes);
 
-			RdsLine* pLine = (RdsLine*)createObject(pTile, EntityType::RDS_LINE);
-			saveRdsStopLine(pLine, location);
+			RdsStopLine* pLine = (RdsStopLine*)createObject(pTile, EntityType::RDS_STOP_LINE);
+			saveRdsLine(location);
 			convert(location, pLine->location);
-			pLine->width = pStopLocation->width;
-			pLine->side = 0;
-			// TODO merge locationType into lineType, color?
-			// pLine->lineType = (RdsLine::LineType)pStopLocation->locationType;
-			pLine->lineType = RdsLine::LineType::eStopLine;
-			pLine->color = (RdsLine::LineColor)pStopLocation->color;
-			pLine->isStopLocation = true;
+
+			if (!isCreateRdsForIntersection(pGrid, pStopLocation->laneGroups))
+				pLine->stopLineType = RdsStopLine::StopLineType::WAITINGZONE;
 
 			for (HadLaneGroup* linkGroup : pStopLocation->laneGroups) {
 				RdsGroup* pRdsGroup = queryGroup(linkGroup->originId, pTile);

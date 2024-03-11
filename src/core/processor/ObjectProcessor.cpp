@@ -35,6 +35,9 @@ namespace OMDB
 
 		// pole
 		processPole(pMesh, pGrid);
+
+		//speed bump
+		processSpeedBump(pMesh, pGrid);
     }
 
 	void ObjectProcessor::processRelation(DbMesh* pMesh, HadGrid* pGrid, std::vector<HadGrid*>* nearby)
@@ -68,6 +71,9 @@ namespace OMDB
 
 		// pole
 		processPole(pMesh, pGrid, nearby);
+
+		// speed bump
+		processSpeedBump(pMesh, pGrid, nearby);
 	}
 
 
@@ -826,6 +832,61 @@ namespace OMDB
 
 		}
 	}
+
+	void ObjectProcessor::processSpeedBump(DbMesh* pMesh, HadGrid* pGrid)
+	{
+		std::vector<DbRecord*>& speedBumps = pMesh->query(RecordType::DB_HAD_OBJECT_SPEED_BUMP);
+		for (auto item : speedBumps)
+		{
+			DbSpeedBump* speedBumpDB = (DbSpeedBump*)item;
+			HadSpeedBump* speedBumpHad = (HadSpeedBump*)pGrid->alloc(ElementType::HAD_OBJECT_SPEED_BUMP);
+			speedBumpHad->originId = speedBumpDB->uuid;
+			speedBumpHad->heading = speedBumpDB->heading;
+			speedBumpHad->polygon = speedBumpDB->geometry;
+
+			// speed bump -> linkgroup
+			DbLgRel* pLgRel = (DbLgRel*)pMesh->query(speedBumpDB->uuid, RecordType::DB_HAD_OBJECT_LG_REL);
+			if (pLgRel != nullptr) {
+				for (auto& relLg : pLgRel->relLgs) {
+					HadLaneGroup* pGroup = (HadLaneGroup*)pGrid->query(relLg.first, ElementType::HAD_LANE_GROUP);
+					if (pGroup != nullptr)
+					{
+						pGroup->objects.push_back(speedBumpHad);
+						speedBumpHad->laneGroups.push_back(pGroup);
+					}
+				}
+			}
+			pGrid->insert(speedBumpHad->originId, speedBumpHad);
+		}
+	}
+
+	void ObjectProcessor::processSpeedBump(DbMesh* pMesh, HadGrid* pGrid, std::vector<HadGrid*>* nearby)
+	{
+		std::vector<DbRecord*>& speedBumps = pMesh->query(RecordType::DB_HAD_OBJECT_SPEED_BUMP);
+		for (auto cw : speedBumps)
+		{
+			DbSpeedBump* pcw = (DbSpeedBump*)cw;
+			HadSpeedBump* pSpeedBump = (HadSpeedBump*)pGrid->query(pcw->uuid, ElementType::HAD_OBJECT_SPEED_BUMP);
+			if (pSpeedBump == nullptr) {
+				continue;
+			}
+
+			// speed bump -> linkgroup
+			DbLgRel* pLgRel = (DbLgRel*)pMesh->query(pcw->uuid, RecordType::DB_HAD_OBJECT_LG_REL);
+			if (pLgRel != nullptr) {
+				for (auto& relLg : pLgRel->relLgs) {
+					HadLaneGroup* pGroup = (HadLaneGroup*)queryNearby(pGrid, nearby, relLg.first, ElementType::HAD_LANE_GROUP);
+					if (pGroup != nullptr)
+					{
+						pGroup->objects.push_back(pSpeedBump);
+						pSpeedBump->laneGroups.push_back(pGroup);
+					}
+				}
+			}
+
+		}
+	}
+
 
 
 

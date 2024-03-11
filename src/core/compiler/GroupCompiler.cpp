@@ -549,7 +549,7 @@ namespace OMDB
 			{
 				int a = 0;
 			}
-			if (task->laneInfo->_laneGroup->owner->getId() == m_pGrid->getId())
+			//if (task->laneInfo->_laneGroup->owner->getId() == m_pGrid->getId())
 			{
 				adjustLaneGroup(task->laneInfo, task->startHeight, task->slope, task->bFromStartAdjust);
 				_adjustLaneGroupMaps.insert(task->laneInfo->id(), task->laneInfo);
@@ -956,7 +956,7 @@ namespace OMDB
 		{
 			if (ids.count(lane->originId))
 			{
-				continue;
+			//	continue;
 			}
 			std::vector<MapPoint3D64> tmpVertexes(lane->location.vertexes.begin(), lane->location.vertexes.end());
 			interpolatePoints(tmpVertexes, groupInfo->raisedRefLine);

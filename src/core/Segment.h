@@ -3,6 +3,8 @@
 
 namespace OMDB
 {
+#define INVALID_INDEX -1
+
 /**
 注意,我们这里定义的SegmentId和算路rp文件的SegmentId完全没关系,
 此处我们定义这个SegmentId是为了拓扑生成能分开link direct等于1时正向和反向拓扑,

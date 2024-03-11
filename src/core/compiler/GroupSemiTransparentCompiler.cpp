@@ -356,7 +356,7 @@ namespace OMDB
 		RdsGroup* pGroup = (RdsGroup*)queryGroup(connectedGroup->originId, pTile);
 		bool leftBoundaryClipped = clipBoundary(left, leftSide, leftBoundaryDistance);
 		bool rightBoundaryClipped = clipBoundary(right, rightSide, rightBoundaryDistance);
-		if (leftBoundaryClipped || rightBoundaryClipped) {
+		if (pGroup && (leftBoundaryClipped || rightBoundaryClipped)) {
 			RdsGroup* newGroup = (RdsGroup*)createObject(pTile, EntityType::RDS_GROUP);
 			clipGroup(pTile, pGroup, newGroup, leftSide, rightSide);
 			setupSemiTransparentPoints(newGroup, semiTransparentPoints, min(leftBoundaryDistance, rightBoundaryDistance));
@@ -1277,28 +1277,28 @@ namespace OMDB
 
 			// 检测道路边界是否相连
 			// 这里与TopoBuilder不一样的地方是这里需要两条边界都是相连的
-			// 考虑到有些是共享道路边界,此时是iItem->startNode与jItem->endNode相连
+			// 考虑到有些是共享道路边界,此时是currentStartNode与nextEndNode相连
 			// 10893644,3431005车道距离小于2m,因此改为1.5米
 			const float CONNECT_POINT_EPSILON = 1500.f;  // ≈1.5m
 			for (auto& iItem : pCurrent->roadBoundaries)
 			{
 				bool isConnectedLaneGroup = false;
-				auto currentStartPt = iItem->startNode->position;
-				auto currentEndPt = iItem->endNode->position;
-				if (directionEqual(iItem, pCurrent, 3)) {
-					currentStartPt = iItem->endNode->position;
-					currentEndPt = iItem->startNode->position;
-				}
+				auto currentStartNode = getStartNode(iItem, pCurrent);
+				auto currentEndNode = getEndNode(iItem, pCurrent);
+				if (currentStartNode == nullptr || currentEndNode == nullptr)
+					continue;
+				auto currentStartPt = currentStartNode->position;
+				auto currentEndPt = currentEndNode->position;
 				for (auto& jItem : pNext->roadBoundaries)
 				{
-					auto nextStartPt = jItem->startNode->position;
-					auto nextEndPt = jItem->endNode->position;
-					if (directionEqual(jItem, pNext, 3)) {
-						nextStartPt = jItem->endNode->position;
-						nextEndPt = jItem->startNode->position;
-					}
-					if (iItem->endNode->originId == jItem->startNode->originId ||
-						iItem->startNode->originId == jItem->endNode->originId ||
+					auto nextStartNode = getStartNode(jItem, pNext);
+					auto nextEndNode = getEndNode(jItem, pNext);
+					if (nextStartNode == nullptr || nextEndNode == nullptr)
+						continue;
+					auto nextStartPt = nextStartNode->position;
+					auto nextEndPt = nextEndNode->position;
+					if (currentEndNode->originId == nextStartNode->originId ||
+						currentStartNode->originId == nextEndNode->originId ||
 						currentEndPt.pos.distance(nextStartPt.pos) < CONNECT_POINT_EPSILON ||
 						currentStartPt.pos.distance(nextEndPt.pos) < CONNECT_POINT_EPSILON) {
 						isConnectedLaneGroup = true;
@@ -1319,25 +1319,25 @@ namespace OMDB
 				if (i != 0 && i != pCurrent->laneBoundaries.size() - 1)
 					continue;
 				auto& iItem = pCurrent->laneBoundaries[i];
-				auto currentStartPt = iItem->startNode->position;
-				auto currentEndPt = iItem->endNode->position;
-				if (directionEqual(iItem, pCurrent, 3)) {
-					currentStartPt = iItem->endNode->position;
-					currentEndPt = iItem->startNode->position;
-				}
+				auto currentStartNode = getStartNode(iItem, pCurrent);
+				auto currentEndNode = getEndNode(iItem, pCurrent);
+				if (currentStartNode == nullptr || currentEndNode == nullptr)
+					continue;
+				auto currentStartPt = currentStartNode->position;
+				auto currentEndPt = currentEndNode->position;
 				for (int j = 0; j < pNext->laneBoundaries.size(); j++)
 				{
 					if (j != 0 && j != pNext->laneBoundaries.size() - 1)
 						continue;
 					auto& jItem = pNext->laneBoundaries[j];
-					auto nextStartPt = jItem->startNode->position;
-					auto nextEndPt = jItem->endNode->position;
-					if (directionEqual(jItem, pNext, 3)) {
-						nextStartPt = jItem->endNode->position;
-						nextEndPt = jItem->startNode->position;
-					}
-					if (iItem->endNode->originId == jItem->startNode->originId ||
-						iItem->startNode->originId == jItem->endNode->originId ||
+					auto nextStartNode = getStartNode(jItem, pNext);
+					auto nextEndNode = getEndNode(jItem, pNext);
+					if (nextStartNode == nullptr || nextEndNode == nullptr)
+						continue;
+					auto nextStartPt = nextStartNode->position;
+					auto nextEndPt = nextEndNode->position;
+					if (currentEndNode->originId == nextStartNode->originId ||
+						currentStartNode->originId == nextEndNode->originId ||
 						currentEndPt.pos.distance(nextStartPt.pos) < CONNECT_POINT_EPSILON ||
 						currentStartPt.pos.distance(nextEndPt.pos) < CONNECT_POINT_EPSILON) {
 						isConnectedLaneGroup = true;

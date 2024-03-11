@@ -9,6 +9,14 @@
 #include "../loader/DbObjectLoader.h"
 #include "../loader/DbIntersectionLoader.h"
 #include "../loader/DbTollGateLoader.h"
+#include "../generator/ZGenerator.h"
+#include "../generator/LinkGenerator.h"
+#include "../generator/GroupGenerator.h"
+#include "../generator/RoadBoundaryGenerator.h"
+#include "../generator/LaneBoundaryGenerator.h"
+#include "../generator/LaneGenerator.h"
+#include "../generator/RoadGenerator.h"
+#include "../generator/IntersectionGenerator.h"
 #include <fstream>
 #include <algorithm>
 #include <mutex>
@@ -104,6 +112,7 @@ namespace OMDB
 					}
 					DbMesh* pMesh = new DbMesh();
 					load(id, pMesh);
+					generateZ(pMesh);
 					m_data[id] = pMesh;
 				}
 			}
@@ -129,6 +138,8 @@ namespace OMDB
 
 	void MeshCache::loadOmrp(const std::vector<uint32>& ids)
 	{
+		// TODO: 以下使用std::find的查找可使用set数据结构来优化查找效率(lg(N))
+
 		std::vector<uint32>& total = FileManager::instance()->idList();
 		for (auto& id : ids)
 		{
@@ -148,16 +159,34 @@ namespace OMDB
 					continue;
 				}
 				m_data.emplace(*iter, nullptr);
+
+				if (CompileSetting::instance()->isGenerateHdData)
+				{
+					// nearbyId不在当前要求处理范围(ids)内，仍需要查找其nearby网格，且限定其nearby只在当前处理范围内
+					if (std::find(ids.begin(), ids.end(), *iter) == ids.end())
+					{
+						std::vector<uint32> nearbyNearby;
+						searchNearBy(*iter, nearbyNearby);
+
+						std::vector<uint32> nearbyNearbyKeep;
+						for (auto nearbyNearbyId : nearbyNearby)
+						{
+							if (std::find(ids.begin(), ids.end(), nearbyNearbyId) != ids.end())
+								nearbyNearbyKeep.push_back(nearbyNearbyId);
+						}
+						m_mapNearby[*iter] = nearbyNearbyKeep;
+					}
+				}
 			}
 			m_mapNearby[id] = nearby;
 			m_data.emplace(id, nullptr);
 		}
 
-		const char* path = "./working/china_mesh.omrp";
+		std::string path = CompileSetting::instance()->omrpDir + "/china_mesh.omrp";
 		std::ifstream f(path);
 		f.open(path, std::ios::_Nocreate);
 		sqlite3* pDb = nullptr;
-		int status = sqlite3_open_v2(path, &pDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
+		int status = sqlite3_open_v2(path.data(), &pDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
 		if (status != SQLITE_OK)
 		{
 			sqlite3_close(pDb);
@@ -226,6 +255,7 @@ namespace OMDB
 					pMesh->setId(id);
 					reader.read(blob.data, blob.size, pMesh);
 					free(blob.data);
+					generateZ(pMesh);
 					m_data[id] = pMesh;
 				}
 				catch (CallStackWalker& walker)
@@ -282,16 +312,165 @@ namespace OMDB
 		m_data.clear();
 		m_mapNearby.clear();
 
-		std::string path = "./working/china_mesh.omrp";
-		if (boost::filesystem::exists(path))
+		if (CompileSetting::instance()->omrpDir != "")
 		{
-			loadOmrp(ids);
+			std::string path = CompileSetting::instance()->omrpDir + "/china_mesh.omrp";
+			if (boost::filesystem::exists(path))
+				loadOmrp(ids);
+			else
+				printError("Not Get Omrp File From omdb.ini File Settting");
 		}
 		else
 		{
 			loadOmdb(ids);
 		}
+
+		CompileSetting* pSetting = CompileSetting::instance();
+		if (pSetting->isGenerateHdData) // generateRelation
+		{
+			generateWithZRelation();
+			generateRelation();
+		}
 	}
+
+	void MeshCache::generateZ(DbMesh* pMesh)
+	{
+		CompileSetting* pSetting = CompileSetting::instance();
+		if (pSetting->isGenerateHdData) // generate
+		{
+			GeneratorData generatorData;
+			LinkGenerator(generatorData).Generate(pMesh);
+			ZGenerator(generatorData).Generate(pMesh);
+		}
+	}
+
+	void MeshCache::generateWithZRelation()
+	{
+		auto generateWithZRelation = [](DbMesh* pMesh, std::vector<DbMesh*>* nearby) {
+			GeneratorData generatorData;
+			LinkGenerator(generatorData).GenerateRelation(pMesh, nearby);
+			ZGenerator(generatorData).GenerateRelation(pMesh, nearby);
+
+			GroupGenerator(generatorData).Generate(pMesh);
+			RoadBoundaryGenerator(generatorData).Generate(pMesh);
+			LaneBoundaryGenerator(generatorData).Generate(pMesh);
+			LaneGenerator(generatorData).Generate(pMesh);
+			RoadGenerator(generatorData).Generate(pMesh);
+			IntersectionGenerator(generatorData).Generate(pMesh);
+		};
+
+		// 初始化线程
+		CompileSetting* pSetting = CompileSetting::instance();
+		unsigned int threadNumber = std::thread::hardware_concurrency();
+		if (pSetting->threadNumber > 0)
+			threadNumber = min(pSetting->threadNumber, threadNumber);
+
+		std::queue <uint32 > tasks;
+		for_each(m_data.begin(), m_data.end(), [&](const std::pair<uint32, DbMesh*>& pair)->void {tasks.push(pair.first); });
+		// 定义generate线程函数
+		Spinlock spinlock;
+		auto threadFun = [&] {
+			while (true)
+			{
+				uint32 id;
+				{
+					{
+						std::lock_guard<Spinlock> lock(spinlock);
+						if (tasks.empty())
+							break;
+						id = tasks.front();
+						tasks.pop();
+					}
+					DbMesh* pCenterMesh;
+					std::vector<DbMesh*> pNearbyMesh;
+					query(id, pCenterMesh, pNearbyMesh);
+					if (pCenterMesh == nullptr)
+						continue;
+
+					generateWithZRelation(pCenterMesh, &pNearbyMesh);
+				}
+			}
+		};
+
+		// generateRelation
+		auto start = std::chrono::steady_clock::now();
+		std::vector<std::thread> workers;
+		workers.resize(threadNumber);
+		for (unsigned int i = 0; i < threadNumber; i++)
+		{
+			workers[i] = std::move(std::thread(threadFun));
+		}
+
+		for_each(workers.begin(), workers.end(), [](std::thread& thread)->void {
+			if (thread.joinable())
+			{
+				thread.join();
+			}
+		});
+	}
+
+	void MeshCache::generateRelation()
+	{
+		auto generateRelation = [](DbMesh* pMesh, std::vector<DbMesh*>* nearby) {
+			GeneratorData generatorData;
+			GroupGenerator(generatorData).GenerateRelation(pMesh, nearby);
+			RoadBoundaryGenerator(generatorData).GenerateRelation(pMesh, nearby);
+			LaneBoundaryGenerator(generatorData).GenerateRelation(pMesh, nearby);
+			LaneGenerator(generatorData).GenerateRelation(pMesh, nearby);
+			RoadGenerator(generatorData).GenerateRelation(pMesh, nearby);
+			IntersectionGenerator(generatorData).GenerateRelation(pMesh, nearby);
+		};
+
+		// 初始化线程
+		CompileSetting* pSetting = CompileSetting::instance();
+		unsigned int threadNumber = std::thread::hardware_concurrency();
+		if (pSetting->threadNumber > 0)
+			threadNumber = min(pSetting->threadNumber, threadNumber);
+
+		std::queue <uint32 > tasks;
+		for_each(m_data.begin(), m_data.end(), [&](const std::pair<uint32, DbMesh*>& pair)->void {tasks.push(pair.first); });
+		// 定义generate线程函数
+		Spinlock spinlock;
+		auto threadFun = [&] {
+			while (true)
+			{
+				uint32 id;
+				{
+					{
+						std::lock_guard<Spinlock> lock(spinlock);
+						if (tasks.empty())
+							break;
+						id = tasks.front();
+						tasks.pop();
+					}
+					DbMesh* pCenterMesh;
+					std::vector<DbMesh*> pNearbyMesh;
+					query(id, pCenterMesh, pNearbyMesh);
+					if (pCenterMesh == nullptr)
+						continue;
+
+					generateRelation(pCenterMesh, &pNearbyMesh);
+				}
+			}
+		};
+
+		// generateRelation
+		auto start = std::chrono::steady_clock::now();
+		std::vector<std::thread> workers;
+		workers.resize(threadNumber);
+		for (unsigned int i = 0; i < threadNumber; i++)
+		{
+			workers[i] = std::move(std::thread(threadFun));
+		}
+
+		for_each(workers.begin(), workers.end(), [](std::thread& thread)->void {
+			if (thread.joinable())
+			{
+				thread.join();
+			}
+		});
+	}
+
 	void MeshCache::load(uint32 id, DbMesh* pMesh)
 	{
 		NcString* path = FileManager::instance()->queryPath(id);

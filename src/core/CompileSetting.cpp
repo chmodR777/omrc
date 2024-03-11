@@ -28,6 +28,9 @@ namespace OMDB
 		}
 		ToString(value, outputDir);
 
+		value = defaultSection->valueWithName(L"omrpDir");
+		ToString(value, omrpDir);
+
 		value = defaultSection->valueWithName(L"threadNumber");
 		if (value == NULL) {
 			// default 4 thread
@@ -80,18 +83,8 @@ namespace OMDB
 			}
 		}
 
-		//调试写出Spatialite数据用于QGis查看
-		value = defaultSection->valueWithName(L"writeSpatialiteFileMeshId");
-		if (value == NULL) {
-			writeSpatialiteFileMeshId = 0;
-		}
-		else {
-			writeSpatialiteFileMeshId = cq_wtoi(value);
-			if (writeSpatialiteFileMeshId < 0) {
-				printError("Invalid writeSpatialiteFileMeshId(%S) in omdb.ini", value);
-				return false;
-			}
-		}
+		value = defaultSection->valueWithName(L"meshIdsForCompiling");
+		ToString(value, meshIdsForCompiling);
 
 		auto setOption = [&](bool& isAnything, const std::wstring& tmpString)-> void 
 		{
@@ -108,13 +101,14 @@ namespace OMDB
 		};
 
 		setOption(isOutputRoutingData, L"isOutputRoutingData");
+		setOption(isOutputHdRoutingData, L"isOutputHdRoutingData");
 		setOption(isNotCompileUrbanData, L"isNotCompileUrbanData");
 		setOption(isGenerateHdData, L"isGenerateHdData");
 		setOption(isModifyHeightFromAbsToRel, L"isModifyHeightFromAbsToRel");
 		setOption(isDaimlerShangHai, L"isDaimlerShangHai");
 		setOption(isCompileTurnWaiting, L"isCompileTurnWaiting");
-		setOption(isCompileTransparency, L"isCompileTransparency");
 		setOption(isWriteSpatialite, L"isWriteSpatialite");
+		setOption(isCompileNdsData, L"isCompileNdsData");
 		return true;
 	}
 
@@ -166,6 +160,19 @@ namespace OMDB
 			{
 				printWarning("Invalid --isOutputRoutingData argument: %S, use value from INI: %s",
 					options->isOutputRoutingData, isOutputRoutingData ? "true" : "false");
+			}
+		}
+
+		if (!options->isOutputHdRoutingData.empty())
+		{
+			if (options->isOutputHdRoutingData == "false" || options->isOutputHdRoutingData == "FALSE")
+				isOutputHdRoutingData = false;
+			else if (options->isOutputHdRoutingData == "true" || options->isOutputHdRoutingData == "TRUE")
+				isOutputHdRoutingData = true;
+			else
+			{
+				printWarning("Invalid --isOutputHdRoutingData argument: %S, use value from INI: %s",
+					options->isOutputHdRoutingData, isOutputHdRoutingData ? "true" : "false");
 			}
 		}
 
@@ -235,18 +242,20 @@ namespace OMDB
 	{
 		printInfo("SourceDir                     : %s", sourceDir.c_str());
 		printInfo("OutputDir                     : %s", outputDir.c_str());
+		printInfo("omrpDir                       : %s", omrpDir.c_str());
 		printInfo("dataVersion                   : %s", dataVersion.c_str());
+		printInfo("meshIdsForCompiling           : %s", meshIdsForCompiling.c_str());
 		printInfo("ThreadNumber                  : %d", threadNumber);
 		printInfo("boundNumber                   : %d", boundNumber);
-		printInfo("writeSpatialiteFileMeshId     : %d", writeSpatialiteFileMeshId);
-
 		printInfo("isOutputRoutingData           : %d", isOutputRoutingData);
+		printInfo("isOutputHdRoutingData         : %d", isOutputHdRoutingData);
 		printInfo("isNotCompileUrbanData         : %d", isNotCompileUrbanData);
 		printInfo("isGenerateHdData              : %d", isGenerateHdData);
 		printInfo("isModifyHeightFromAbsToRel    : %d", isModifyHeightFromAbsToRel);
 		printInfo("isDaimlerShangHai             : %d", isDaimlerShangHai);
 		printInfo("isCompileTurnWaiting          : %d", isCompileTurnWaiting);
 		printInfo("isWriteSpatialite             : %d", isWriteSpatialite);
+		printInfo("isCompileNdsData              : %d", isCompileNdsData);
 	}
 
 	OMDB::CompileSetting* CompileSetting::instance()

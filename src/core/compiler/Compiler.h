@@ -4,7 +4,6 @@
 #include "../om/HadGrid.h"
 #include "geometry/map_point3d64.h"
 #include "clipper.hpp"
-#include "tool_kit/boost_geometry_utils.h"
 #include "map_point3d64_converter.h"
 #include "algorithm/linear_interpolation_triangle_surface.h"
 #include "CompileSetting.h"
@@ -23,6 +22,12 @@ using namespace RDS;
 
 namespace OMDB
 {
+	struct Blob
+	{
+		void* data;
+		size_t size;
+	};
+
     template <typename Container>
     class VectorIndexableGuardrail {
         using size_type = typename Container::size_type;
@@ -108,10 +113,13 @@ namespace OMDB
 		linestring_t _intersectionPoints;
         Polygon3d _originIntersctPoly;
         int64 _originId;
+        std::vector<OMDB::LineString3d> curbLines;
+        RdsGroup* rdsGroup{ nullptr };
 	};
 
     struct rdsRoadInfo
     {
+        int64 originId;
         RdsRoad* _road;
 		box_2t _roadBox2T;
 		ring_2t _roadPoly2T;
@@ -121,7 +129,6 @@ namespace OMDB
 
 	struct rdsLineInfo
 	{
-		RdsLine* _line;
 		box_2t _lineBox2T;
 		linestring_t _linePoints;
 		std::vector<MapPoint3D64> _originPoints;
@@ -129,41 +136,44 @@ namespace OMDB
 
 	struct CompilerData
 	{
-		// RDSLine编译后构建的数据
+		// RDS车道线数据
+        Box2TRTree::Ptr m_rtreeLineBox; 
+        std::vector<box_2t> m_rdsLineBoxes;
 		std::vector<rdsLineInfo> m_rdsLines;
+        SegmentRTree::Ptr rtreeGridLines;
+        std::vector<segment_t> gridLines;
 
-		// RDSIntersection编译后构建的数据
+		// RDS路口数据
         Box2TRTree::Ptr m_rtreeIntersectionBox;
         std::vector<box_2t> m_rdsIntersectionBoxes;
 		std::vector<rdsIntersectionInfo> m_rdsIntersections;
         std::vector<Triangle> m_intersectionTriangles;
+        std::vector<OMDB::LineString3d> greenbeltLines;
 
-        // RDSRoad编译后构建的数据
+        // RDS路面数据
         Box2TRTree::Ptr m_rtreeRoadBox;
         std::vector<box_2t> m_rdsRoadBoxes;
         std::vector<rdsRoadInfo> m_rdsRoads;
         std::vector<Triangle> m_roadTriangles;
+        std::unordered_map<int64, rdsRoadInfo> m_originIdToRdsRoadInfo;
 
-        // RDSLine(stopline)编译后构建的数据
-        Box2TRTree::Ptr m_rtreeStopLineBox;
+        // RDSStopLine数据和构建路面、路口的端线
+        Box2TRTree::Ptr m_rtreeStopLineBox; 
         std::vector<box_2t> m_rdsStopLineBoxes;
-        std::vector<rdsLineInfo> m_rdsStopLines;
-
-        //路口stopLine
+        std::vector<rdsLineInfo> m_rdsStopLines;    // RDS StopLine
         SegmentRTree::Ptr rtreeGridIntersectionStopLines;
-        std::vector<segment_t> gridIntectionStopLines;
+        std::vector<segment_t> gridIntectionStopLines;  // 路口端线
         std::unordered_map<size_t, int64> stopLineToOriginIdMaps;
-
-        //路面stopLine
-        std::vector<segment_t> gridRoadStopLines;
+        std::vector<segment_t> gridRoadStopLines;   // 路面端线
 
         //车道组Rtree
         Box2TRTree::Ptr m_rtreeLaneGroup;
         std::vector<box_2t> m_laneGroupBoxes;
         std::vector<HadLaneGroup*> gridLaneGroups;
-      
 
-
+        //保存锯齿状车道组（为了和后面路牙编译同步边界）
+        std::vector<HadLaneGroup*> hullGroups;
+        std::vector<bool> isLeftHulls;
 	};
 
     class Compiler
@@ -179,6 +189,13 @@ namespace OMDB
         static float calcLength(const std::vector<MapPoint3D64> polyline, const MapPoint3D64& pt);// pt 距离polyline起点的距离，先抓点，抓点失败返回距起点的直线距离
 
         static bool _intersect(MapPoint3D64* points1, size_t pointCount1, MapPoint3D64* points2, size_t pointCount2, ClipperLib::PolyTree& polyTree);
+
+        forceinline linestring_t getConvertLine(const std::vector<MapPoint3D64>& pts)
+        {
+            auto mapPoints = pts;
+            coordinatesTransform.convert(mapPoints.data(), mapPoints.size());
+            return LINESTRING_T(mapPoints);
+        }
 
     protected:
         virtual void compile(HadGrid* const pGrid, const std::vector<HadGrid*>& nearby, RdsTile* pTile) = 0;
@@ -251,6 +268,11 @@ namespace OMDB
         /// 判断边界方向是否与direction相同
         static bool directionEqual(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup, int direction);
 
+		static HadRoadBoundaryNode* getStartNode(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup);
+		static HadRoadBoundaryNode* getEndNode(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup);
+		static HadLaneBoundaryNode* getStartNode(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup);
+		static HadLaneBoundaryNode* getEndNode(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup);
+
         static LineString3d getBoundaryLocation(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup);
 
         static LineString3d getBoundaryLocation(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup);
@@ -274,21 +296,13 @@ namespace OMDB
 
         BoundingBox2d makeBoundingBox2d(const std::vector<MapPoint3D64>& vertexes);
 
-
-        // 获取编译后的路口RTree
-        Box2TRTree::Ptr getIntersectionBox2TRTree();
-
-        // 获取编译后的路面RTree
-        Box2TRTree::Ptr getRoadBox2TRTree();
-
-        // 获取编译后的stopline对象RTree
-        Box2TRTree::Ptr getStopLineBox2TRTree();
-
-        // 获取编译后的路口stopline对象RTree
-        SegmentRTree::Ptr getIntersectionStopLineSegmentRTree();
-
-        // 获取车道组的对象RTree
-        Box2TRTree::Ptr getLaneGroupBox2DRTree();
+        Box2TRTree::Ptr getLineBox2TRTree();                        // 获取编译后的车道线RTree
+        SegmentRTree::Ptr getLineSegmentRTree();                    // 获取编译后的车道线Segment RTree
+        Box2TRTree::Ptr getIntersectionBox2TRTree();                // 获取编译后的路口RTree
+        Box2TRTree::Ptr getRoadBox2TRTree();                        // 获取编译后的路面RTree
+        Box2TRTree::Ptr getStopLineBox2TRTree();                    // 获取编译后的stopline对象RTree
+        SegmentRTree::Ptr getIntersectionStopLineSegmentRTree();    // 获取编译后的路口stopline对象RTree
+        Box2TRTree::Ptr getLaneGroupBox2DRTree();                   // 获取车道组的对象RTree
 
         //获取网
         point_t getNearestPoint(const std::vector<point_t>& points, const point_t& originPoint);
@@ -323,8 +337,5 @@ namespace OMDB
     protected:
         MapPoint3D64Converter coordinatesTransform;
         CompilerData& compilerData;
-
-		std::vector<HadLaneGroup*> hullGroups;
-        std::vector<bool> isLeftHulls;
     };
 }

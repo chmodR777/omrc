@@ -9,6 +9,7 @@ namespace OMDB
     {
 	public:
 		RoadCompiler(CompilerData& data) :Compiler(data) {};
+		RdsGroup* m_rdsGroup;
 
     protected:
 		virtual void compile(HadGrid* const pGrid, const std::vector<HadGrid*>& nearby, RdsTile* pTile) override;
@@ -42,7 +43,7 @@ namespace OMDB
 		MapPoint3D64 getRoadBoundaryLastPointRelGroup(HadLaneGroup* pGroup, HadRoadBoundary* pBoundary);
 		MapPoint3D64 getRoadBoundaryLastPointRelGroup(HadLaneGroup* pGroup, HadLaneBoundary* pBoundary);
 
-		void saveRdsRoad(RdsRoad* pRoad, std::vector<LineString3d>& originRoadLines, bool isRoundabout);
+		void saveRdsRoad(RdsRoad* pRoad, std::vector<LineString3d>& originRoadLines, bool isRoundabout, const int64& originId);
     };
 }
 

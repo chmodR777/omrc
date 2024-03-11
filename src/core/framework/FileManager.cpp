@@ -50,30 +50,37 @@ namespace OMDB
 
 	void FileManager::initialize()
 	{
-		std::string path = "./working/china_mesh.omrp";
-		if (boost::filesystem::exists(path))
+		if (CompileSetting::instance()->omrpDir != "")
 		{
-			std::ifstream f(path);
-			f.open(path, std::ios::_Nocreate);
-			sqlite3* pDb = nullptr;
-			int status = sqlite3_open_v2(path.c_str(), &pDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
-			if (status != SQLITE_OK)
+			std::string path = CompileSetting::instance()->omrpDir + "/china_mesh.omrp";
+			if (boost::filesystem::exists(path))
 			{
-				sqlite3_close(pDb);
-				return;
-			}
-			sqlite3_exec(pDb, "PRAGMA synchronous = OFF", 0, 0, 0);
-			std::string s("SELECT id FROM mesh");
+				std::ifstream f(path);
+				f.open(path, std::ios::_Nocreate);
+				sqlite3* pDb = nullptr;
+				int status = sqlite3_open_v2(path.c_str(), &pDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
+				if (status != SQLITE_OK)
+				{
+					sqlite3_close(pDb);
+					return;
+				}
+				sqlite3_exec(pDb, "PRAGMA synchronous = OFF", 0, 0, 0);
+				std::string s("SELECT id FROM mesh");
 
-			const char* sql = s.c_str();
-			DbRecordIterator recordIterator = DbRecordIterator(pDb);
-			recordIterator.resetWithSqlStr(sql);
-			while (recordIterator.hasNextRecord())
-			{
-				sqlite3_stmt* stmt = recordIterator.record();
-				m_meshIdList.push_back(sqlite3_column_int(stmt, 0));
+				const char* sql = s.c_str();
+				DbRecordIterator recordIterator = DbRecordIterator(pDb);
+				recordIterator.resetWithSqlStr(sql);
+				while (recordIterator.hasNextRecord())
+				{
+					sqlite3_stmt* stmt = recordIterator.record();
+					m_meshIdList.push_back(sqlite3_column_int(stmt, 0));
+				}
+				sqlite3_close(pDb);
 			}
-			sqlite3_close(pDb);
+			else
+			{
+				printError("Not Get Omrp File From omdb.ini File Settting");
+			}
 		}
 		else
 		{

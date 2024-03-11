@@ -32,6 +32,8 @@ namespace RDS
         void writeCrossWalk(sqlite3* pDb, const std::vector<RdsObject*>& crosswalks);
         void writeRelationship(sqlite3* pDb, const std::vector<RdsObject*>& relationships);
         void writeTrafficLights(sqlite3* pDb, const std::vector<RdsObject*>& trafficLights);
+        void writeWaitingZone(sqlite3* pDb, const std::vector<RdsObject*>& lines);
+
     private:
 		void writeLineString(gaiaGeomCollPtr geo, const LineString3d& edge);
 		void writeMultiLineString(gaiaGeomCollPtr geo, const MultiLineString3d& polygon);

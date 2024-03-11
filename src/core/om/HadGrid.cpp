@@ -95,7 +95,10 @@ namespace OMDB
 				FREE_ELEMENT(ElementType::HAD_OBJECT_BARRIER, HadBarrier)
 				FREE_ELEMENT(ElementType::HAD_INTERSECTION, HadIntersection)
 				FREE_ELEMENT(ElementType::HAD_TOLLGATE, HadTollGate)
-
+				FREE_ELEMENT(ElementType::HAD_OBJECT_TRAFFIC_LIGHTS, HadTrafficLights)
+				FREE_ELEMENT(ElementType::HAD_OBJECT_POLE, HadPole)
+				FREE_ELEMENT(ElementType::HAD_LANE_TURNWAITING, HadLaneTurnwaiting)
+				FREE_ELEMENT(ElementType::HAD_OBJECT_SPEED_BUMP, HadSpeedBump)
 			}
 		}
 		m_data.clear();
@@ -141,6 +144,7 @@ namespace OMDB
 			ALLOC_ELEMENT(ElementType::HAD_OBJECT_TRAFFIC_LIGHTS, HadTrafficLights)
 			ALLOC_ELEMENT(ElementType::HAD_OBJECT_POLE, HadPole)
 			ALLOC_ELEMENT(ElementType::HAD_LANE_TURNWAITING, HadLaneTurnwaiting)
+			ALLOC_ELEMENT(ElementType::HAD_OBJECT_SPEED_BUMP, HadSpeedBump)
 		}
 
 		return pElement;

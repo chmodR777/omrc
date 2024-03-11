@@ -10,9 +10,10 @@ namespace OMDB
 	class MeshTopoBuilder
 	{
 	public:
-		static void buildTopo(const std::vector<DbMesh*>& grids);
-		static void buildTopo(DbLink* pCurrent,DbLink* pNext);
-		static void buildTopo(DbRdLinkLanePa* pCurrent, DbRdLinkLanePa* pNext);
+
+		static void buildTopo(std::vector<DbLink*>& links);
+		static void buildDirectTopo(DbDirectLink* pCurrent, DbDirectLink* pNext);
+		static void buildLinkTopo(DbDirectLink* pCurrent, DbDirectLink* pNext);
 
 		static void buildTopoCrossGrid(DbMesh* center,const std::vector<DbMesh*>* nearby);
 

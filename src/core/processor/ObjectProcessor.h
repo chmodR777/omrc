@@ -38,6 +38,10 @@ namespace OMDB
 
 		void processPole(DbMesh* pMesh, HadGrid* pGrid);
 		void processPole(DbMesh* pMesh, HadGrid* pGrid, std::vector<HadGrid*>* nearby);
+
+		void processSpeedBump(DbMesh* pMesh, HadGrid* pGrid);
+		void processSpeedBump(DbMesh* pMesh, HadGrid* pGrid, std::vector<HadGrid*>* nearby);
+
 	};
 }
 

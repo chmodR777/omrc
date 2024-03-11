@@ -15,6 +15,9 @@ namespace OMDB
 		void searchNearBy(uint32 id, std::vector<uint32>& nearby);
 		void loadOmdb(const std::vector<uint32>& ids);
 		void loadOmrp(const std::vector<uint32>& ids);
+		void generateZ(DbMesh* pMesh);
+		void generateWithZRelation();
+		void generateRelation();
 	public:
 		~MeshCache();
 		void query(uint32 meshId, DbMesh*& center);

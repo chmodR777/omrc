@@ -2455,7 +2455,6 @@ namespace OMDB
 					location.vertexes = lineOnRoadSurface;
 
 					rdsLineInfo tmp;
-					tmp._line = nullptr;
 					tmp._originPoints = location.vertexes;
 					std::vector<MapPoint3D64> tmpLine = location.vertexes;
 					coordinatesTransform.convert(tmpLine.data(), tmpLine.size());

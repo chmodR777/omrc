@@ -18,23 +18,10 @@ namespace OMDB
 	void MarkingCompiler::compile(HadGrid* const pGrid, const std::vector<HadGrid*>& nearby, RdsTile* pTile)
     {
 		//路口屏蔽
-		std::set<HadObject*> inIntersectionObjects;
 		std::set<HadObject*> inInTurnwaitingLaneObjects;
         for (auto obj : pGrid->query(ElementType::HAD_LANE))
         {
             HadLane* pLane = (HadLane*)obj;
-            if (pLane->linkGroup && pLane->linkGroup->inIntersection)
-            {
-                for (HadObject* obj : pLane->objects)
-                {
-                    if (obj->objectType == ElementType::HAD_OBJECT_ARROW)
-                    {
-                        inIntersectionObjects.insert(obj);
-						
-                    }
-                }
-				
-            }
             if ((pLane->leftBoundary && !pLane->leftBoundary->turnwaitingPAs.empty())
                 || (pLane->rightBoundary && !pLane->rightBoundary->turnwaitingPAs.empty()))
             {
@@ -62,17 +49,8 @@ namespace OMDB
 		//跨网格
 		for (auto& tmpArrowObj : pGrid->query(ElementType::HAD_OBJECT_ARROW))
 		{
-			if (CompileSetting::instance()->isDaimlerShangHai)
-			{
-				if (inIntersectionObjects.count((HadObject*)tmpArrowObj))
-					continue;
-			}
-
-            if (!CompileSetting::instance()->isCompileTurnWaiting)
-            {
-                if (inInTurnwaitingLaneObjects.count((HadObject*)tmpArrowObj))
-                    continue;
-            }
+			if (inInTurnwaitingLaneObjects.count((HadObject*)tmpArrowObj))
+				continue;
 
 			HadArrow* hadArrow = (HadArrow*)tmpArrowObj;
 			processCrossGrid(pGrid, hadArrow, allLines);
@@ -102,11 +80,6 @@ namespace OMDB
 		rtree_type_segment	rtree(boost::irange<std::size_t>(0lu, m_segments.size()), param, originInd);
 		for (auto& tmpArrowObj : pGrid->query(ElementType::HAD_OBJECT_ARROW))
 		{
-			if (CompileSetting::instance()->isDaimlerShangHai)
-			{
-				if (inIntersectionObjects.count((HadObject*)tmpArrowObj))
-					continue;
-			}
 			HadArrow* hadArrow = (HadArrow*)tmpArrowObj;
 
 			//判断是否为普通路

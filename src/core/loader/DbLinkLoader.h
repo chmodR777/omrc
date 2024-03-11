@@ -9,6 +9,7 @@ namespace OMDB
     protected:
         virtual void    load() override;
         void            loadLink();
+        void            loadLinkAddition();
 
         void            loadNodeForm();
         void            loadNodeMesh();

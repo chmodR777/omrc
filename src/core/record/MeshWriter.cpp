@@ -2,6 +2,8 @@
 #include "MeshWriter.h"
 #include "DbRecord.h"
 #include "DbMesh.h"
+#include "CompileSetting.h"
+
 #pragma warning(disable:4267)
 #pragma warning(disable:4244)
 namespace OMDB
@@ -52,6 +54,18 @@ namespace OMDB
 		serializeTrafficLights(pMesh, streamWriter);
 		serializePole(pMesh, streamWriter);
 		serializeLaneTurnwaiting(pMesh, streamWriter);
+		serializeSpeedBump(pMesh, streamWriter);
+
+		if (CompileSetting::instance()->isGenerateHdData)
+		{
+			serializeLaneInfo(pMesh, streamWriter);
+			serializeZLevel(pMesh, streamWriter);
+			serializeLinkName(pMesh, streamWriter);
+			serializeRoadName(pMesh, streamWriter);
+			serializeRdLinkLanePa(pMesh, streamWriter);
+			serializeRdLaneLinkCLM(pMesh, streamWriter);
+			serializeRdLaneTopoDetail(pMesh, streamWriter);
+		}
 		
 		pData = (unsigned char*)malloc(sw.lengthInBytes());
 		memcpy(pData,sw.bytes(),sw.lengthInBytes());
@@ -112,13 +126,23 @@ namespace OMDB
 		}
 
 	}
+	void MeshWriter::serializeWString(std::wstring& w_str, ByteStreamWriter& ow)
+	{
+		std::string str = WString2String(w_str);
+		ow.writeVarUint32(str.size());
+		if (!w_str.empty())
+		{
+			// 需要多输出一个结尾符号'\0'
+			ow.writeBytes(str.c_str(), str.size() + 1);
+		}
+	}
 	void MeshWriter::serializeLink(DbMesh* pMesh, ByteStreamWriter* streamWriter)
 	{
 		ByteStreamWriter writer;
 		writer.writeUint8((uint8)RecordType::DB_HAD_LINK);
 		auto rds = pMesh->query(RecordType::DB_HAD_LINK);
 		writer.writeVarUint32(rds.size());
-		for (auto& rd : rds )
+		for (auto& rd : rds)
 		{
 			DbLink* pLink = (DbLink*)rd;
 			writer.writeInt64(pLink->uuid);
@@ -132,6 +156,18 @@ namespace OMDB
 			writer.writeVarInt32(pLink->median_left);
 			writer.writeVarInt32(pLink->median_right);
 			writer.writeVarInt32(pLink->overhead_obstruction);
+
+			writer.writeVarInt32(pLink->bridge_type);
+			writer.writeVarInt32(pLink->is_overline_flyover);
+			writer.writeVarInt32(pLink->is_viaduct);
+			writer.writeVarInt32(pLink->function_class);
+			writer.writeVarInt32(pLink->frontage);
+			writer.writeVarInt32(pLink->lane_num);
+			writer.writeVarInt32(pLink->lane_s2e);
+			writer.writeVarInt32(pLink->lane_e2s);
+			writer.writeVarInt32(pLink->lane_class);
+			writer.writeVarInt32(pLink->pave_status);
+
 			writer.writeVarUint32(pLink->wayTypes.size());
 			for (auto wayType : pLink->wayTypes) {
 				writer.writeVarInt32(wayType);
@@ -186,6 +222,19 @@ namespace OMDB
 
 				serializePolyline3d(tollArea.geometry.postions, &writer);
 			}
+
+			if (CompileSetting::instance()->isGenerateHdData)
+			{
+				writer.writeVarUint32(pLink->relLaneInfos.size());
+				for (auto& pair : pLink->relLaneInfos)
+				{
+					DbLink::DbRelLaneInfo rel = pair.second;
+					writer.writeInt64(pair.first);
+					writer.writeVarInt32(rel.seqNum);
+					writer.writeVarInt32(rel.direct);
+				}
+			}
+
 			serializePolyline3d(pLink->geometry.vertexes, &writer);
 		}
 		writer.alignToBits(8);
@@ -731,15 +780,7 @@ namespace OMDB
 			writer.writeVarInt32(pText->width);
 			writer.writeVarInt32(pText->length);
 
-			//writer.writeVarUint32(pText->textContent.size());
-			std::string textContent = WString2String(pText->textContent);
-			writer.writeVarUint32(textContent.size());
-			if (!pText->textContent.empty())
-			{
-				// 需要多输出一个结尾符号'\0'
-				//writer.writeBytes(pText->textContent.c_str(), pText->textContent.size()+1);
-				writer.writeBytes(textContent.c_str(), textContent.size() + 1);
-			}
+			serializeWString(pText->textContent, writer);
 
 			writer.writeInt64(pText->center.pos.lon);
 			writer.writeInt64(pText->center.pos.lat);
@@ -876,13 +917,7 @@ namespace OMDB
 			writer.writeInt64(pTollGate->geometry.pos.lat);
 			writer.writeInt32(pTollGate->geometry.z);
 
-            std::string tollName = WString2String(pTollGate->tollName);
-            writer.writeVarUint32(tollName.size());
-            if (!pTollGate->tollName.empty())
-            {
-                // 需要多输出一个结尾符号'\0'
-                writer.writeBytes(tollName.c_str(), tollName.size() + 1);
-            }
+			serializeWString(pTollGate->tollName, writer);
 
 			writer.writeVarUint32(pTollGate->tollLanes.size());
 			for (int i = 0; i < pTollGate->tollLanes.size(); i++)
@@ -963,4 +998,233 @@ namespace OMDB
         streamWriter->writeVarUint64(writer.lengthInBytes());
         streamWriter->writeBytes(writer.bytes(), writer.lengthInBytes());
     }
+
+	void MeshWriter::serializeLaneInfo(DbMesh* pMesh, ByteStreamWriter* streamWriter)
+	{
+		ByteStreamWriter writer;
+		writer.writeUint8((uint8)RecordType::DB_HAD_LANEINFO);
+		auto rds = pMesh->query(RecordType::DB_HAD_LANEINFO);
+		writer.writeVarUint32(rds.size());
+		for (auto& rd : rds)
+		{
+			DbLaneInfo* pLaneInfo = (DbLaneInfo*)rd;
+			writer.writeInt64(pLaneInfo->uuid);
+			serializeWString(pLaneInfo->inLaneInfo, writer);
+			serializeWString(pLaneInfo->extendLaneInfo, writer);
+			serializeWString(pLaneInfo->busLaneInfo, writer);
+			writer.writeVarInt32(pLaneInfo->reachDir);
+		}
+		writer.alignToBits(8);
+		streamWriter->writeVarUint64(writer.lengthInBytes());
+		streamWriter->writeBytes(writer.bytes(), writer.lengthInBytes());
+	}
+	void MeshWriter::serializeZLevel(DbMesh* pMesh, ByteStreamWriter* streamWriter)
+	{
+		ByteStreamWriter writer;
+		writer.writeUint8((uint8)RecordType::DB_HAD_ZLEVEL);
+		auto rds = pMesh->query(RecordType::DB_HAD_ZLEVEL);
+		writer.writeVarUint32(rds.size());
+		for (auto& rd : rds)
+		{
+			DbZLevel* pZLevel = (DbZLevel*)rd;
+			writer.writeInt64(pZLevel->uuid);
+			writer.writeVarUint32(pZLevel->relLinks.size());
+			for (auto& pair : pZLevel->relLinks)
+			{
+				DbZLevel::DbRelLink& rel = pair;
+				writer.writeInt64(rel.relLinkid);
+				writer.writeVarInt32(rel.shpSeqNum);
+				writer.writeVarInt32(rel.startEnd);
+				writer.writeVarInt32(rel.zLevel);
+				writer.writeInt64(rel.geometry.pos.lon);
+				writer.writeInt64(rel.geometry.pos.lat);
+				writer.writeInt32(rel.geometry.z);
+			}
+		}
+		writer.alignToBits(8);
+		streamWriter->writeVarUint64(writer.lengthInBytes());
+		streamWriter->writeBytes(writer.bytes(), writer.lengthInBytes());
+	}
+	void MeshWriter::serializeLinkName(DbMesh* pMesh, ByteStreamWriter* streamWriter)
+	{
+		ByteStreamWriter writer;
+		writer.writeUint8((uint8)RecordType::DB_HAD_LINK_NAME);
+		auto rds = pMesh->query(RecordType::DB_HAD_LINK_NAME);
+		writer.writeVarUint32(rds.size());
+		for (auto& rd : rds)
+		{
+			DbLinkName* pLinkName = (DbLinkName*)rd;
+			writer.writeInt64(pLinkName->uuid);
+			writer.writeVarUint32(pLinkName->linkNamePas.size());
+			for (auto& pair : pLinkName->linkNamePas)
+			{
+				DbLinkName::DbLinkNamePa& rel = pair;
+				writer.writeVarInt32(rel.featureType);
+				writer.writeInt64(rel.startOffset * 1e6);
+				writer.writeInt64(rel.endOffset * 1e6);
+				serializePolyline3d(rel.geometry.postions, &writer);
+
+				writer.writeInt32(rel.nameGroup);
+				writer.writeVarInt32(rel.seqNum);
+				writer.writeVarInt32(rel.nameClass);
+				writer.writeVarInt32(rel.nameType);
+			}
+		}
+		writer.alignToBits(8);
+		streamWriter->writeVarUint64(writer.lengthInBytes());
+		streamWriter->writeBytes(writer.bytes(), writer.lengthInBytes());
+	}
+	void MeshWriter::serializeRoadName(DbMesh* pMesh, ByteStreamWriter* streamWriter)
+	{
+		ByteStreamWriter writer;
+		writer.writeUint8((uint8)RecordType::DB_ROAD_NAME);
+		auto rds = pMesh->query(RecordType::DB_ROAD_NAME);
+		writer.writeVarUint32(rds.size());
+		for (auto& rd : rds)
+		{
+			DbRoadName* pRoadName = (DbRoadName*)rd;
+			writer.writeInt64(pRoadName->uuid);
+			writer.writeVarUint32(pRoadName->nameGroups.size());
+			for (auto& pair : pRoadName->nameGroups)
+			{
+				DbRoadName::DbRoadNameGroup& rel = pair;
+				serializeWString(rel.langCode, writer);
+				serializeWString(rel.name, writer);
+				serializeWString(rel.type, writer);
+				serializeWString(rel.base, writer);
+				serializeWString(rel.prefix, writer);
+				serializeWString(rel.suffix, writer);
+				writer.writeVarInt32(rel.codeType);
+			}
+		}
+		writer.alignToBits(8);
+		streamWriter->writeVarUint64(writer.lengthInBytes());
+		streamWriter->writeBytes(writer.bytes(), writer.lengthInBytes());
+	}
+	void MeshWriter::serializeRdLinkLanePa(DbMesh* pMesh, ByteStreamWriter* streamWriter)
+	{
+		ByteStreamWriter writer;
+		writer.writeUint8((uint8)RecordType::DB_RD_LINK_LANEPA);
+		auto rds = pMesh->query(RecordType::DB_RD_LINK_LANEPA);
+		writer.writeVarUint32(rds.size());
+		for (auto& rd : rds)
+		{
+			DbRdLinkLanePa* pLinkLanePa = (DbRdLinkLanePa*)rd;
+			writer.writeInt64(pLinkLanePa->uuid);
+			writer.writeVarUint32(pLinkLanePa->relLinks.size());
+			for (auto& pair : pLinkLanePa->relLinks)
+			{
+				DbRdLinkLanePa::DbRelLink rel = pair.second;
+				writer.writeInt64(pair.first);
+				writer.writeInt64(rel.relLinkid);
+				writer.writeInt64(rel.startOffset * 1e6);
+				writer.writeInt64(rel.endOffset * 1e6);
+				writer.writeVarInt32(rel.type);
+				writer.writeVarInt32(rel.directType);
+			}
+			writer.writeVarUint32(pLinkLanePa->relLinkLanes.size());
+			for (auto& pair : pLinkLanePa->relLinkLanes)
+			{
+				DbRdLinkLanePa::DbRelRdLinkLane& rel = pair;
+				writer.writeInt64(rel.relLinkLaneId);
+				writer.writeVarInt32(rel.seqNum);
+			}
+		}
+		writer.alignToBits(8);
+		streamWriter->writeVarUint64(writer.lengthInBytes());
+		streamWriter->writeBytes(writer.bytes(), writer.lengthInBytes());
+	}
+	void MeshWriter::serializeRdLaneLinkCLM(DbMesh* pMesh, ByteStreamWriter* streamWriter)
+	{
+		ByteStreamWriter writer;
+		writer.writeUint8((uint8)RecordType::DB_RD_LANE_LINK_CLM);
+		auto rds = pMesh->query(RecordType::DB_RD_LANE_LINK_CLM);
+		writer.writeVarUint32(rds.size());
+		for (auto& rd : rds)
+		{
+			DbRdLaneLinkCLM* pLaneLinkCLM = (DbRdLaneLinkCLM*)rd;
+			writer.writeInt64(pLaneLinkCLM->uuid);
+			writer.writeVarInt32(pLaneLinkCLM->laneType);
+			writer.writeVarInt32(pLaneLinkCLM->tranType);
+			serializeWString(pLaneLinkCLM->arrowDir, writer);
+
+			writer.writeVarUint32(pLaneLinkCLM->accesses.size());
+			for (auto& pair : pLaneLinkCLM->accesses)
+			{
+				DbRdLaneLinkCLM::DbRdLaneLinkAccessCLM rel = pair;
+				writer.writeVarInt32(rel.characteristic);
+				serializeWString(rel.validPeriod, writer);
+			}
+			writer.writeVarUint32(pLaneLinkCLM->conditions.size());
+			for (auto& pair : pLaneLinkCLM->conditions)
+			{
+				DbRdLaneLinkCLM::DbRdLaneLinkConditionCLM& rel = pair;
+				writer.writeVarInt32(rel.type);
+				writer.writeVarInt32(rel.direct);
+				serializeWString(rel.validPeriod, writer);
+			}
+			writer.writeVarUint32(pLaneLinkCLM->speedLimits.size());
+			for (auto& pair : pLaneLinkCLM->speedLimits)
+			{
+				DbRdLaneLinkCLM::DbRdLaneLinkSpeedLimitCLM& rel = pair;
+				writer.writeVarInt32(rel.maxSpeed);
+				writer.writeVarInt32(rel.minSpeed);
+			}
+		}
+		writer.alignToBits(8);
+		streamWriter->writeVarUint64(writer.lengthInBytes());
+		streamWriter->writeBytes(writer.bytes(), writer.lengthInBytes());
+	}
+	void MeshWriter::serializeRdLaneTopoDetail(DbMesh* pMesh, ByteStreamWriter* streamWriter)
+	{
+		ByteStreamWriter writer;
+		writer.writeUint8((uint8)RecordType::DB_RD_LANE_TOPO_DETAIL);
+		auto rds = pMesh->query(RecordType::DB_RD_LANE_TOPO_DETAIL);
+		writer.writeVarUint32(rds.size());
+		for (auto& rd : rds)
+		{
+			DbRdLaneTopoDetail* pLaneTopoDetail = (DbRdLaneTopoDetail*)rd;
+			writer.writeInt64(pLaneTopoDetail->uuid);
+			writer.writeInt64(pLaneTopoDetail->inLaneLinkPid);
+			writer.writeInt64(pLaneTopoDetail->outLaneLinkPid);
+			writer.writeVarInt32(pLaneTopoDetail->throughTurn);
+			writer.writeVarInt32(pLaneTopoDetail->laneChange);
+
+			writer.writeVarUint32(pLaneTopoDetail->conditions.size());
+			for (auto& pair : pLaneTopoDetail->conditions)
+			{
+				DbRdLaneTopoDetail::DbRdLaneTopoCond rel = pair;
+				writer.writeVarInt32(rel.vehicleType);
+				serializeWString(rel.validPeriod, writer);
+			}
+			writer.writeVarUint32(pLaneTopoDetail->viaLinkLanes.size());
+			for (auto& pair : pLaneTopoDetail->viaLinkLanes)
+			{
+				DbRdLaneTopoDetail::DbRdLaneTopoVia& rel = pair;
+				writer.writeInt64(rel.relLinkLaneId);
+				writer.writeVarInt32(rel.seqNum);
+			}
+		}
+		writer.alignToBits(8);
+		streamWriter->writeVarUint64(writer.lengthInBytes());
+		streamWriter->writeBytes(writer.bytes(), writer.lengthInBytes());
+	}
+	void MeshWriter::serializeSpeedBump(DbMesh* pMesh, ByteStreamWriter* streamWriter)
+	{
+		ByteStreamWriter writer;
+		writer.writeUint8((uint8)RecordType::DB_HAD_OBJECT_SPEED_BUMP);
+		auto rds = pMesh->query(RecordType::DB_HAD_OBJECT_SPEED_BUMP);
+		writer.writeUint32(rds.size());
+		for (auto& rd : rds)
+		{
+			DbSpeedBump* pSpeedBump = (DbSpeedBump*)rd;
+			writer.writeInt64(pSpeedBump->uuid);
+			writer.writeVarInt32(pSpeedBump->heading * 1000);
+			serializePolyline3d(pSpeedBump->geometry.vertexes, &writer);
+		}
+		writer.alignToBits(8);
+		streamWriter->writeVarUint64(writer.lengthInBytes());
+		streamWriter->writeBytes(writer.bytes(), writer.lengthInBytes());
+	}
+
 }

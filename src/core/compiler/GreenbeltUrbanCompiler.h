@@ -7,6 +7,23 @@
 
 namespace OMDB
 {
+
+	struct grablaneGroupInfo
+	{
+		HadLaneGroup* laneGroup;
+		double distance;
+		double hight;
+	};
+
+	struct PartPoints
+	{
+		std::vector <MapPoint3D64> points1;
+		std::vector <MapPoint3D64> points2;
+		double AverageWidth;
+	};
+
+
+
 	/// <summary>
 	/// 城市绿化带
 	/// </summary>
@@ -29,29 +46,55 @@ namespace OMDB
 
 		bool getNearbyLaneGropuByAngle(HadLaneGroup* inLaneGroup, std::vector<HadLaneGroup*>& inoutNearbyLaneGroups);
 
-		bool getNearbyLaneGropuByDistance(HadLaneGroup* inLaneGroup, std::vector<HadLaneGroup*>& inNearbyLaneGroups, HadLaneGroup*& outNearLaneGroup);
+		bool getNearbyLaneGropuByDirection(HadLaneGroup* inLaneGroup, std::vector<HadLaneGroup*>& inoutNearbyLaneGroups); 
+
+		bool getNearbyLaneGropuByDistance(HadLaneGroup* inLaneGroup, std::vector<HadLaneGroup*>& inNearbyLaneGroups, HadLaneGroup*& outNearLaneGroup, std::vector<grablaneGroupInfo>& grabLaneGroups);
 				
 		bool expandConnectionLaneGroups(HadLaneGroup* inLaneGroup, const std::vector<HadGrid*>& nearby, std::vector<HadLaneGroup*>& outConnectionLaneGroups);
 
-		bool getPointsByLaneGroups(std::vector<HadLaneGroup*> inLaneGroups, std::vector<MapPoint3D64>& Points);
+		bool getPointsByLaneGroups(std::vector<HadLaneGroup*>& inLaneGroups, std::vector<MapPoint3D64>& Points);
 
 		bool ableGreenbeltLaneGroup(HadLaneGroup* inLaneGroup);
 
 		bool alignLaneGroupsbylength(std::vector<HadLaneGroup*> & in1stLaneGroups, std::vector<HadLaneGroup*>& in2ndLaneGroups);
 
-		bool alignPoints(std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd);
+		bool alignPoints(std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd, std::vector<PartPoints> & partPointslist);
+
+		bool isSameDirection(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd);
+
+		bool isExistIntersect(std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd);
+
+		bool isNeedGreenbeltSurface(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd);
+
+		bool makeGreenbeltData(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd, RdsTile* pTile);
+
+		bool makeGreenbeltSurfaceData(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd, RdsTile* pTile);
+
+		//bool existMiddleLaneGroup(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd);
+
+		bool existMiddleLaneGroup(std::vector<HadLaneGroup*>& in1stLaneGroups, std::vector<HadLaneGroup*>& in2ndLaneGroups);
+
+		bool makeUturnGreenbelt(std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd , RdsTile* pTile);
+
+		bool insertPointAtFraction(MapPoint3D64& start, MapPoint3D64& end, double fraction, MapPoint3D64& outpoint);
+
+		bool deleteInvalidIntersectionLaneGroup(std::vector<HadLaneGroup*>& in1stLaneGroups, std::vector<HadLaneGroup*>& in2ndLaneGroups);
+
+		bool getNearestOtherLaneGroup(HadLaneGroup* in1stLaneGroup, std::vector<HadLaneGroup*>& in2ndLaneGroups, int& outLangGroupIndex);
 
 #ifdef __DEBUG_GREENBELTURBAN__
 		//debug
 		void PrintPoints(std::vector<MapPoint3D64> lanepoints, std::string mark = "");
 		void PrintLaneGroup(HadLaneGroup* inLaneGroup, std::string mark = "");
 		void PrintLaneGroup(std::vector<HadLaneGroup*> LaneGroups, std::string mark = "");
+		void PrintInfo(std::string info = "");
 #endif
 	
 		
 
 	private:
 		HadGrid* m_pGrid;
+		std::vector<HadGrid*> m_nearby;
 		std::vector<HadLaneGroup*>  m_1stLaneGroups;
 		std::vector< HadLaneGroup*> m_2ndLaneGroups;
 		std::vector< HadLaneGroup*> m_VisitLaneGroups;	

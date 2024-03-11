@@ -21,6 +21,10 @@ namespace OMDB
         for (auto hl : links)
         {
             DbRoadBoundLink* phl = (DbRoadBoundLink*)hl;
+            if (phl->markDeleted) { // 删除了,不生成HD数据
+                continue;
+            }
+
             HadRoadBoundary* prb = (HadRoadBoundary*)pGrid->alloc(ElementType::HAD_ROAD_BOUNDARY);
             prb->originId = phl->uuid;
             prb->location = phl->geometry;
@@ -103,6 +107,14 @@ namespace OMDB
 			if (prb == nullptr) {
 				continue;
 			}
+
+            // 兼容generator
+            if (prb->startNode == nullptr) {
+                prb->startNode = (HadRoadBoundaryNode*)queryNearby(pGrid, nearby, phl->starRoadBoundNodeId, ElementType::HAD_ROAD_BOUNDARY_NODE);
+            }
+            if (prb->endNode == nullptr) {
+                prb->endNode = (HadRoadBoundaryNode*)queryNearby(pGrid, nearby, phl->endRoadBoundNodeId, ElementType::HAD_ROAD_BOUNDARY_NODE);
+            }
 
 			// 一个车道边界可能是周边两个车道组共享的,但是direction和side不同
 			for (auto& relLg : phl->relLgs) {

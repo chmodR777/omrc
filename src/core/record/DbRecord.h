@@ -2,7 +2,9 @@
 #include <string>
 #include <vector>
 #include <map>
+#include "Segment.h"
 #include "../Geometry.h"
+#include "framework/Spinlock.h"
 namespace OMDB
 {
     enum class RecordType : uint8
@@ -53,6 +55,7 @@ namespace OMDB
 		DB_RD_LANE_LINK_CLM,
 		DB_RD_LANE_TOPO_DETAIL,
 
+		DB_HAD_OBJECT_SPEED_BUMP,
 
     };
 
@@ -79,6 +82,10 @@ namespace OMDB
 	public:
 		std::vector<DbSkeleton*>    previous;
 		std::vector<DbSkeleton*>    next;
+		// 逻辑删除标志位,为true时不生成HD数据
+		bool markDeleted{ false };
+		Spinlock previousLock;
+		Spinlock nextLock;
 	};
 
 	class DbLgLink;
@@ -89,10 +96,27 @@ namespace OMDB
 	class DbLinkTollArea;
 	
 	class DbNode;
-	class DbZLevel;
 	class DbLinkName;
 	class DbLaneInfo;
 	class DbRdLinkLanePa;
+
+	class DbZLevel : public DbRecord
+	{
+	public:
+		struct DbRelLink
+		{
+			int64					  relLinkid{ 0 };
+			int						  shpSeqNum{ 0 };
+			int						  startEnd{ 0 };
+			int						  zLevel{ 0 };
+			MapPoint3D64				  geometry;
+
+			// 以下字段不需要输出
+			DbZLevel* dbZLevel{ nullptr };
+		};
+		std::vector<DbRelLink> relLinks;
+	};
+
 	class DbLink : public DbSkeleton
 	{
 	public:
@@ -119,6 +143,19 @@ namespace OMDB
 		int median_left{0};
 		int median_right{0};
 		int overhead_obstruction{0};
+
+		int bridge_type{ 0 };
+		int is_overline_flyover{ 0 };
+		int is_viaduct{ 0 };
+		int function_class{ 0 };
+		int frontage{ 0 };
+
+		int lane_num{ 0 };
+		int lane_s2e{ 0 };
+		int lane_e2s{ 0 };
+		int lane_class{ 0 };
+		int pave_status{ 0 };
+
 		std::vector<int> wayTypes;
 
 		std::vector<DbLinkDataLevel> dataLevels;
@@ -127,11 +164,11 @@ namespace OMDB
 		std::vector<DbLinkOverheadObstruction> overheadObstructions;
 		std::vector<DbLinkTollArea> tollAreas;
 
-		// TODO 以下需要写出
+		// 车信索引
 		std::map<int64, DbRelLaneInfo> relLaneInfos;
 
 		// 以下字段不需要输出
-		std::vector<DbZLevel*> zLevels;
+		std::vector<DbZLevel::DbRelLink> zLevels;
 		std::vector<DbRdLinkLanePa*> lanePas;
 		std::vector<DbLgLink*> groups;
 		std::vector<DbLinkName*> linkNames;
@@ -148,40 +185,24 @@ namespace OMDB
 
 	// 有向Link,该表为虚表,不需要写出数据
 	// 注意,往该对象添加数据不会改变原始数据
-	class DbDirectLink : public DbLink
+	class DbDirectLink
 	{
 	public:
+		// 原始Link
+		DbLink* link{ nullptr };
+		// 对应DSegmentId
+		DSegmentId dsegId{ INVALID_DSEGMENT_ID };
 		// 单向
 		int direct{ 0 };
-		// 单向前置节点
-		std::vector<DbSkeleton*>    previous;
-		// 单向后置节点
-		std::vector<DbSkeleton*>    next;
-		// 单向车道组
-		std::vector<DbRdLinkLanePa*> lanePas;
 
 	public:
-		static DbDirectLink* getDirectLink(DbLink* pLink, int direct);
-	};
+		static DbDirectLink getDirectLink(DbLink* pLink, int direct);
 
-	class DbZLevel : public DbRecord
-	{
-	public:
-		struct DbRelLink
-		{
-			int64					  relLinkid{ 0 };
-			int						  shpSeqNum{ 0 };
-			int						  startEnd{ 0 };
-			int						  zLevel{ 0 };
-			MapPoint3D64				  geometry;
-		};
-		std::vector<DbRelLink> relLinks;
-
-	public:
-		forceinline DbRelLink* relLink(int64 relLinkid) {
-			return &(*std::find_if(relLinks.begin(), relLinks.end(), 
-				[&](DbRelLink& l) {return l.relLinkid == relLinkid; }));
-		}
+		int64 getStartNode();
+		int64 getEndNode();
+		std::vector<DbRdLinkLanePa*> getLanePas();
+		std::vector<DbSkeleton*> getPrevious();
+		std::vector<DbSkeleton*> getNext();
 	};
 
 	class DbLaneInfo : public DbRecord
@@ -209,7 +230,13 @@ namespace OMDB
 		bool generateHdData = false; // 是否生成的组
 	};
 
-	class DbLgLink : public DbRelLinkCommon{};
+	class DbLgLink : public DbRelLinkCommon{
+	public:
+
+		// 以下字段不需要输出
+		bool isGenerated{ false };
+		bool markDeleted{ false };
+	};
 
 	class DbHadLinkLanePa : public DbRelLinkCommon{};
 
@@ -220,7 +247,7 @@ namespace OMDB
 	public:
 		struct DbRdLaneLinkAccessCLM
 		{
-			int64					  characteristic{ 0 };
+			int					      characteristic{ 0 };
 			std::wstring				  validPeriod{ L"" };
 		};
 		struct DbRdLaneLinkConditionCLM
@@ -231,7 +258,7 @@ namespace OMDB
 		};
 		struct DbRdLaneLinkSpeedLimitCLM
 		{
-			int64					  maxSpeed{ 0 };
+			int					      maxSpeed{ 0 };
 			int						  minSpeed{ 0 };
 		};
 
@@ -265,12 +292,35 @@ namespace OMDB
 		std::vector<DbRoadBoundLink*>	roadBoundaries;  //按在车道组内从左到右的顺序排序
 		std::vector<DbLaneMarkLink*>	    laneBoundaries;  //按在车道组内从左到右的顺序排序
 
+		// AABB,包围盒，用于空间范围的搜索，使用道路边界计算包围盒
+		BoundingBox3d extent;
+
 		// 是否跨网格
 		bool crossGrid{ false };
 		int64 inIntersection{ 0 };
 		bool inClipRing{ false };
 		bool isGenerated{ false };
-		std::atomic_int generateLanePaCnt{ 0 };
+		int generatedLanePaIdx{ 0 };
+		// 记录车道组角度(右转/直行/左转)
+		float lanePaAngle{ 0 };
+		// 记录该车道组生成的几个车道组
+		// 最终只会按右转->直行->左转的顺序生成一个车道组
+		// 其他车道组在生成完车道线之后会销毁(包括道路边界)
+		std::map<int64, std::vector<DbRdLinkLanePa*>> generatedLanePas;
+		// RoadBoundaryGenerator::generateDirectStraightRoadGroup对每个车道组只应执行依次，此处记录是否执行。后续判断已经执行过则不在执行
+		// 使用atomic的原因：对同一跨网格连续车道组，会分别在两个网格的线程中处理，此时涉及，不使用atomic可能多次重复处理。
+		std::atomic<bool> straightRoadGeometryTopoHandled{ false };
+
+	public:
+		// 获取生成的车道组数
+		forceinline size_t getGeneratedLanePaCnt() {
+			size_t cnt = 0;
+			for (auto& pair : generatedLanePas)
+				cnt += pair.second.size();
+			return cnt;
+		}
+		// 更新包围盒
+		void updateBoundingBox();
 	};
 
 	// TODO 该表也需要写出
@@ -323,6 +373,7 @@ namespace OMDB
 
 		// 该字段不需要输出
 		std::vector<DbLink*> links;
+		Spinlock linkLock;
 	public:
 		forceinline std::vector<DbLink*> getLinksExcept(DbLink* const pLink) {
 			std::vector<DbLink*> tmpLinks;
@@ -437,6 +488,7 @@ namespace OMDB
 		// -1标识表里没查到边界类型
 		int boundaryType{-1};
 		LineString3d geometry;
+		double geometryOffset{ 0.0 }; // 车道组边界geomery由Link geometry进行buffer操作得来，此处记录buffer操作的offset，负数表示生成的线在link几何点序方向左侧，正数在右侧。
 
 		std::map<int64, DbLgRoadBoundREL> relLgs;
     };
@@ -796,7 +848,13 @@ namespace OMDB
 		LineString3d geometry;			//	几何
 	};
 
-
+	/** 减速带 */
+	class DbSpeedBump : public DbRecord
+	{
+	public:
+		double heading{ 0.0 };		//	朝向
+		Polygon3d geometry;			//	几何
+	};
 
 }
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "Compiler.h"
-#include "tool_kit/boost_geometry_utils.h"
 #include "map_point3d64_converter.h"
 
 namespace OMDB

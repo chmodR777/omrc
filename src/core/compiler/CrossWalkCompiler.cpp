@@ -12,6 +12,7 @@
 		 UNREFERENCED_PARAMETER(nearby);
 		 std::vector<segment_t> gridStopLines;
 		 gridStopLines.insert(gridStopLines.end(), compilerData.gridRoadStopLines.begin(), compilerData.gridRoadStopLines.end());
+		 gridStopLines.insert(gridStopLines.end(), compilerData.gridIntectionStopLines.begin(), compilerData.gridIntectionStopLines.end());
 		 parameters param;
 		 index_getter_segment originInd(gridStopLines);
 		 rtree_type_segment	rtree(boost::irange<std::size_t>(0lu, gridStopLines.size()), param, originInd);
@@ -50,9 +51,6 @@
 				 if (!isProDataLevel(pcw->laneGroups))
 					 continue;
 			 }
-
-			 if (pcw->originId == 259303923134024231)
-				 printInfo("");
 
 			 //多余进行裁剪
 			 std::set<size_t> rdsRoadIds;
@@ -176,6 +174,52 @@
 				 //确定方向
 				 auto tmpPoints = polygon.vertexes;
 				 coordinatesTransform.convert(tmpPoints.data(), tmpPoints.size());
+
+				 // 方法1
+				 ring_2t originPoly = RING_2T(tmpPoints);
+
+				 //删除相邻距离较近的点
+				 for (auto it = originPoly.begin(); it != originPoly.end() - 1;)
+				 {
+					 if (bg::distance(*it, *(it + 1)) < 500)
+						 it = originPoly.erase(it);
+					 else
+						 it++;
+				 }
+
+				 bg::correct(originPoly);
+				 bg::unique(originPoly);
+				 ring_2t kneePoly;
+				 int n = originPoly.size();
+				 if (n < 3)
+					 continue;
+				 double tmpFactor = 0.95;
+				 for (int i = 0; i < n - 1; ++i)
+				 {
+					 if (i - 1 < 0)
+					 {
+						 if (isKneePoint(originPoly[i], originPoly[0], originPoly[i + 1], tmpFactor))
+							 kneePoly.push_back(originPoly[i]);
+					 }
+					 if (i + 1 >= n)
+					 {
+						 if (isKneePoint(originPoly[i], originPoly[i - 1], originPoly[0], tmpFactor))
+							 kneePoly.push_back(originPoly[i]);
+					 }
+					 else
+					 {
+						 if (isKneePoint(originPoly[i], originPoly[i - 1], originPoly[i + 1], tmpFactor))
+							 kneePoly.push_back(originPoly[i]);
+					 }
+				 }
+				 bg::correct(kneePoly);
+				 std::vector<segment_2t> tmpSegs;
+				 for (int i = 0; i < kneePoly.size() - 1; ++i)
+					 tmpSegs.push_back(segment_2t(kneePoly[i], kneePoly[i + 1]));
+				 std::sort(tmpSegs.begin(), tmpSegs.end(), [&](const segment_2t& a, const segment_2t& b)->bool {
+					 return bg::length(a) < bg::length(b); });
+
+				 // 方法2
 				 auto tmpPolyPoints = LINESTRING_T(tmpPoints);
 				 point_t tmpCenter;
 				 bg::centroid(tmpPolyPoints, tmpCenter);
@@ -188,7 +232,8 @@
 				 double rad = 0.0;
 				 if (!resultSegments.empty())
 				 {
-					 auto tmp = resultSegments.front();
+					 //auto tmp = resultSegments.front();
+					 auto tmp = tmpSegs.back();
 
 					 //旋转90度
 					 //vector_t tmpV = S3_V3(tmp);

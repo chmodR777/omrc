@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "MeshTopoBuilder.h"
 #include <algorithm>
-
+#include <mutex>
 namespace OMDB
 {	
 	void MeshTopoBuilder::buildTopo(DbMesh* const pGrid)
@@ -16,110 +16,12 @@ namespace OMDB
 			buildTopo(pLink, false);
 		}
 
-		auto buildDirect23Topo = [](DbLink* pCurrent, DbLink* pNext) {
-			if (pCurrent->direct == 2 && pNext->direct == 2) {
-				if (pCurrent->startNode == pNext->endNode) {
-					buildTopo(pNext, pCurrent);
-				}
-				else if (pCurrent->endNode == pNext->startNode) {
-					buildTopo(pCurrent, pNext);
-				}
-			}
-			else if (pCurrent->direct == 2 && pNext->direct == 3) {
-				if (pCurrent->endNode == pNext->endNode) {
-					buildTopo(pCurrent, pNext);
-				}
-				else if (pCurrent->startNode == pNext->startNode) {
-					buildTopo(pNext, pCurrent);
-				}
-			}
-			else if (pCurrent->direct == 3 && pNext->direct == 2) {
-				if (pCurrent->endNode == pNext->endNode) {
-					buildTopo(pNext, pCurrent);
-				}
-				else if (pCurrent->startNode == pNext->startNode) {
-					buildTopo(pCurrent, pNext);
-				}
-			}
-			else if (pCurrent->direct == 3 && pNext->direct == 3) {
-				if (pCurrent->startNode == pNext->endNode) {
-					buildTopo(pCurrent, pNext);
-				}
-				else if (pCurrent->endNode == pNext->startNode) {
-					buildTopo(pNext, pCurrent);
-				}
-			}
-		};
-
 		// Node
 		std::vector<DbRecord*> nodes = pGrid->query(RecordType::DB_HAD_NODE);
 		for (int i = 0; i < nodes.size(); i++)
 		{
 			DbNode* pNode = (DbNode*)nodes[i];
-			for (int m = 0; m < pNode->links.size(); m++)
-			{
-				DbLink* pCurrent = (DbLink*)pNode->links[m];
-				auto currentDirect = pCurrent->direct;
-				auto currentGroups = pCurrent->lanePas;
-				for (int n = m + 1; n < pNode->links.size(); n++)
-				{
-					DbLink* pNext = (DbLink*)pNode->links[n];
-					auto nextDirect = pNext->direct;
-					auto nextGroups = pNext->lanePas;
-					if (pCurrent->direct != 1 && pNext->direct != 1) {
-						buildDirect23Topo(pCurrent, pNext);
-					}
-					else if (pCurrent->direct == 1 && pNext->direct == 1) {
-						pCurrent->direct = 2;
-						pNext->direct = 2;
-						pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-						pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-						buildDirect23Topo(pCurrent, pNext);
-
-						pCurrent->direct = 2;
-						pNext->direct = 3;
-						pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-						pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-						buildDirect23Topo(pCurrent, pNext);
-
-						pCurrent->direct = 3;
-						pNext->direct = 2;
-						pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-						pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-						buildDirect23Topo(pCurrent, pNext);
-
-						pCurrent->direct = 3;
-						pNext->direct = 3;
-						pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-						pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-						buildDirect23Topo(pCurrent, pNext);
-					}
-					else if (pCurrent->direct == 1 && (pNext->direct == 2 || pNext->direct == 3)) {
-						pCurrent->direct = 2;
-						pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-						buildDirect23Topo(pCurrent, pNext);
-
-						pCurrent->direct = 3;
-						pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-						buildDirect23Topo(pCurrent, pNext);
-					}
-					else if ((pCurrent->direct == 2 || pCurrent->direct == 3) && pNext->direct == 1) {
-						pNext->direct = 2;
-						pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-						buildDirect23Topo(pCurrent, pNext);
-
-						pNext->direct = 3;
-						pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-						buildDirect23Topo(pCurrent, pNext);
-					}
-
-					pNext->direct = nextDirect;
-					pNext->lanePas = nextGroups;
-					pCurrent->direct = currentDirect;
-					pCurrent->lanePas = currentGroups;
-
-				}
-			}
+			buildTopo(pNode->links);
 		}
 
 	}
@@ -133,7 +35,9 @@ namespace OMDB
 			[&](const DbRdLinkLanePa* first, const DbRdLinkLanePa* second)->bool {
 				auto relLinkFirst = getRelLinkPair(pLink, first);
 				auto relLinkSecond = getRelLinkPair(pLink, second);
-				return relLinkFirst.second.startOffset < relLinkSecond.second.startOffset;
+				if (relLinkFirst.second.startOffset != relLinkSecond.second.startOffset)
+					return relLinkFirst.second.startOffset < relLinkSecond.second.startOffset;
+				return relLinkFirst.second.endOffset < relLinkSecond.second.endOffset;
 			}
 		);
 
@@ -153,7 +57,7 @@ namespace OMDB
 				auto rn = getRelLinkPair(pLink, pNext);
 				if (std::abs(rc.second.endOffset - rn.second.startOffset) < 0.01)
 				{
-					buildTopo(pCurrent, pNext);
+					// buildTopo(pCurrent, pNext);
 					if (std::find(pCurrent->next.begin(), pCurrent->next.end(), pNext) == pCurrent->next.end())
 					{
 						pCurrent->next.push_back(pNext);
@@ -182,7 +86,7 @@ namespace OMDB
 				auto rn = getRelLinkPair(pLink, pNext);
 				if (std::abs(rn.second.endOffset - rc.second.startOffset) < 0.01)
 				{
-					buildTopo(pCurrent, pNext);
+					// buildTopo(pCurrent, pNext);
 					if (std::find(pCurrent->next.begin(), pCurrent->next.end(), pNext) == pCurrent->next.end())
 					{
 						pCurrent->next.push_back(pNext);
@@ -208,75 +112,116 @@ namespace OMDB
 		}
 	}
 
-    void MeshTopoBuilder::buildTopo(const std::vector<DbMesh*>& grids)
-    {
-		for (auto& pMesh : grids)
-		{
-			buildTopo(pMesh);
-		}
-    }
-
-	void MeshTopoBuilder::buildTopo(DbLink* pCurrent, DbLink* pNext)
+	void MeshTopoBuilder::buildTopo(std::vector<DbLink*>& links)
 	{
-		// 双方向通行的link的车道组是并排的,车道组之间没有拓扑关系
+		for (int m = 0; m < links.size(); m++)
+		{
+			DbLink* pCurrent = (DbLink*)links[m];
+			for (int n = m + 1; n < links.size(); n++)
+			{
+				DbLink* pNext = (DbLink*)links[n];
+				if (pCurrent->direct != 1 && pNext->direct != 1) {
+					auto currentDirectLink = DbDirectLink::getDirectLink(pCurrent, pCurrent->direct);
+					auto nextDirectLink = DbDirectLink::getDirectLink(pNext, pNext->direct);
+					buildDirectTopo(&currentDirectLink, &nextDirectLink);
+				}
+				else if (pCurrent->direct == 1 && pNext->direct == 1) {
+					auto currentDirectLink = DbDirectLink::getDirectLink(pCurrent, 2);
+					auto nextDirectLink = DbDirectLink::getDirectLink(pNext, 2);
+					buildDirectTopo(&currentDirectLink, &nextDirectLink);
+
+					currentDirectLink = DbDirectLink::getDirectLink(pCurrent, 2);
+					nextDirectLink = DbDirectLink::getDirectLink(pNext, 3);
+					buildDirectTopo(&currentDirectLink, &nextDirectLink);
+
+					currentDirectLink = DbDirectLink::getDirectLink(pCurrent, 3);
+					nextDirectLink = DbDirectLink::getDirectLink(pNext, 2);
+					buildDirectTopo(&currentDirectLink, &nextDirectLink);
+
+					currentDirectLink = DbDirectLink::getDirectLink(pCurrent, 3);
+					nextDirectLink = DbDirectLink::getDirectLink(pNext, 3);
+					buildDirectTopo(&currentDirectLink, &nextDirectLink);
+				}
+				else if (pCurrent->direct == 1 && (pNext->direct == 2 || pNext->direct == 3)) {
+					auto currentDirectLink = DbDirectLink::getDirectLink(pCurrent, 2);
+					auto nextDirectLink = DbDirectLink::getDirectLink(pNext, pNext->direct);
+					buildDirectTopo(&currentDirectLink, &nextDirectLink);
+
+					currentDirectLink = DbDirectLink::getDirectLink(pCurrent, 3);
+					buildDirectTopo(&currentDirectLink, &nextDirectLink);
+				}
+				else if ((pCurrent->direct == 2 || pCurrent->direct == 3) && pNext->direct == 1) {
+					auto currentDirectLink = DbDirectLink::getDirectLink(pCurrent, pCurrent->direct);
+					auto nextDirectLink = DbDirectLink::getDirectLink(pNext, 2);
+					buildDirectTopo(&currentDirectLink, &nextDirectLink);
+
+					nextDirectLink = DbDirectLink::getDirectLink(pNext, 3);
+					buildDirectTopo(&currentDirectLink, &nextDirectLink);
+				}
+
+			}
+		}
+	}
+
+	void MeshTopoBuilder::buildDirectTopo(DbDirectLink* pCurrent, DbDirectLink* pNext)
+	{
+		if (pCurrent->direct == 2 && pNext->direct == 2) {
+			if (pCurrent->getStartNode() == pNext->getEndNode()) {
+				buildLinkTopo(pNext, pCurrent);
+			}
+			else if (pCurrent->getEndNode() == pNext->getStartNode()) {
+				buildLinkTopo(pCurrent, pNext);
+			}
+		}
+		else if (pCurrent->direct == 2 && pNext->direct == 3) {
+			if (pCurrent->getEndNode() == pNext->getEndNode()) {
+				buildLinkTopo(pCurrent, pNext);
+			}
+			else if (pCurrent->getStartNode() == pNext->getStartNode()) {
+				buildLinkTopo(pNext, pCurrent);
+			}
+		}
+		else if (pCurrent->direct == 3 && pNext->direct == 2) {
+			if (pCurrent->getEndNode() == pNext->getEndNode()) {
+				buildLinkTopo(pNext, pCurrent);
+			}
+			else if (pCurrent->getStartNode() == pNext->getStartNode()) {
+				buildLinkTopo(pCurrent, pNext);
+			}
+		}
+		else if (pCurrent->direct == 3 && pNext->direct == 3) {
+			if (pCurrent->getStartNode() == pNext->getEndNode()) {
+				buildLinkTopo(pCurrent, pNext);
+			}
+			else if (pCurrent->getEndNode() == pNext->getStartNode()) {
+				buildLinkTopo(pNext, pCurrent);
+			}
+		}
+	}
+
+	void MeshTopoBuilder::buildLinkTopo(DbDirectLink* pCurrent, DbDirectLink* pNext)
+	{
+		// 进来该函数的都是有向Link
 		if (pCurrent->direct == 1 || pNext->direct == 1) {
 			return;
 		}
 
-		if (std::find(pCurrent->next.begin(), pCurrent->next.end(), pNext) == pCurrent->next.end())
+		auto pCurrentLink = pCurrent->link;
+		auto pNextLink = pNext->link;
 		{
-			pCurrent->next.push_back(pNext);
+			std::lock_guard<Spinlock> lock(pCurrentLink->nextLock);
+			if (std::find(pCurrentLink->next.begin(), pCurrentLink->next.end(), pNextLink) == pCurrentLink->next.end())
+			{
+				pCurrentLink->next.push_back(pNextLink);
+			}
 		}
-		if (std::find(pNext->previous.begin(), pNext->previous.end(), pCurrent) == pNext->previous.end())
+
 		{
-			pNext->previous.push_back(pCurrent);
-		}
-
-		// 没有车道组的返回
-		if (pCurrent->lanePas.empty() || pNext->lanePas.empty())
-			return;
-
-		DbRdLinkLanePa* pCurrentLastGroup = nullptr;
-		DbRdLinkLanePa* pNextFirstGroup = nullptr;
-		if (pCurrent->direct == 2 && pNext->direct == 2) {
-			pCurrentLastGroup = *pCurrent->lanePas.rbegin();
-			pNextFirstGroup = pNext->lanePas[0];
-		}
-		else if (pCurrent->direct == 2 && pNext->direct == 3) {
-			pCurrentLastGroup = *pCurrent->lanePas.rbegin();
-			pNextFirstGroup = *pNext->lanePas.rbegin();
-		}
-		else if (pCurrent->direct == 3 && pNext->direct == 2) {
-			pCurrentLastGroup = pCurrent->lanePas[0];
-			pNextFirstGroup = pNext->lanePas[0];
-		}
-		else if (pCurrent->direct == 3 && pNext->direct == 3) {
-			pCurrentLastGroup = pCurrent->lanePas[0];
-			pNextFirstGroup = *pNext->lanePas.rbegin();
-		}
-
-		// 车道组构建关系
-		buildTopo(pCurrentLastGroup, pNextFirstGroup);
-		if (pCurrent->owner != pNext->owner &&
-			pCurrent->crossGrid && pNext->crossGrid &&
-			pCurrentLastGroup != nullptr && pNextFirstGroup != nullptr) {
-			//pCurrentLastGroup->crossGrid = true;
-			//pNextFirstGroup->crossGrid = true;
-		}
-
-	}
-
-	void MeshTopoBuilder::buildTopo(DbRdLinkLanePa* pCurrent, DbRdLinkLanePa* pNext)
-	{
-		// 路口时可能是同一个车道组
-		if (pCurrent == pNext)
-			return;
-
-		if (std::find(pCurrent->next.begin(), pCurrent->next.end(), pNext) != pCurrent->next.end() ||
-			std::find(pNext->previous.begin(), pNext->previous.end(), pCurrent) != pNext->previous.end()
-			)
-		{
-			return;
+			std::lock_guard<Spinlock> lock(pCurrentLink->previousLock);
+			if (std::find(pNextLink->previous.begin(), pNextLink->previous.end(), pCurrentLink) == pNextLink->previous.end())
+			{
+				pNextLink->previous.push_back(pCurrentLink);
+			}
 		}
 	}
 
@@ -312,7 +257,9 @@ namespace OMDB
 			[&](const DbRdLinkLanePa* first, const DbRdLinkLanePa* second)->bool {
 				auto relLinkFirst = getRelLinkPair(pLink, first);
 				auto relLInkSecond = getRelLinkPair(pLink, second);
-				return relLinkFirst.second.startOffset < relLInkSecond.second.startOffset;
+				if (relLinkFirst.second.startOffset != relLInkSecond.second.startOffset)
+					return relLinkFirst.second.startOffset < relLInkSecond.second.startOffset;
+				return relLinkFirst.second.endOffset < relLInkSecond.second.endOffset;
 			}
 		);
 		return grps;
@@ -320,43 +267,19 @@ namespace OMDB
 
 	void MeshTopoBuilder::buildTopoCrossGrid(DbMesh* center, const std::vector<DbMesh*>* nearby)
 	{
-		auto isCrossGrid = [](const DbLink* pLink)->bool {
-			if (pLink->crossGrid)
-				return true;
-			//for (auto group : pLink->lanePas) {
-			//	if (group->crossGrid)
-			//		return true;
-			//}
-			return false;
-		};
-
 		// 处理跨网格情况
-		std::vector<DbLink*> links;
+		std::map<int64, DbNode*> nodes;
 		auto addCrossGridLink = [&](DbMesh* pGrid) {
-			std::vector<DbRecord*>& tmp = pGrid->query(RecordType::DB_HAD_LINK);
+			std::vector<DbRecord*>& tmp = pGrid->query(RecordType::DB_HAD_NODE);
 			for_each(tmp.begin(), tmp.end(), [&](DbRecord* pElement)->void
 				{
-					DbLink* pLink = (DbLink*)pElement;
-					bool crossGrid = isCrossGrid(pLink);
-					if (!crossGrid) {
-						for (auto p : pLink->previous) {
-							if (isCrossGrid((DbLink*)p)) {
-								crossGrid = true;
-								break;
-							}
-						}
-					}
-					if (!crossGrid) {
-						for (auto n : pLink->next) {
-							if (isCrossGrid((DbLink*)n)) {
-								crossGrid = true;
-								break;
-							}
-						}
-					}
-					if (crossGrid) {
-						buildTopo(pLink, true);
-						links.push_back(pLink);
+					bool crossGridNode = false;
+					DbNode* pNode = (DbNode*)pElement;
+					for (auto idx = 0; idx < pNode->links.size(); idx++)
+						if (pNode->links[idx]->crossGrid)
+							crossGridNode = true; 
+					if (crossGridNode) {
+						nodes.emplace(pNode->uuid, pNode);
 					}
 				}
 			);
@@ -369,106 +292,10 @@ namespace OMDB
 			}
 		);
 
-		auto buildDirect23Topo = [](DbLink* pCurrent, DbLink* pNext) {
-			if (pCurrent->direct == 2 && pNext->direct == 2) {
-				if (pCurrent->startNode == pNext->endNode) {
-					buildTopo(pNext, pCurrent);
-				}
-				else if (pCurrent->endNode == pNext->startNode) {
-					buildTopo(pCurrent, pNext);
-				}
-			}
-			else if (pCurrent->direct == 2 && pNext->direct == 3) {
-				if (pCurrent->endNode == pNext->endNode) {
-					buildTopo(pCurrent, pNext);
-				}
-				else if (pCurrent->startNode == pNext->startNode) {
-					buildTopo(pNext, pCurrent);
-				}
-			}
-			else if (pCurrent->direct == 3 && pNext->direct == 2) {
-				if (pCurrent->endNode == pNext->endNode) {
-					buildTopo(pNext, pCurrent);
-				}
-				else if (pCurrent->startNode == pNext->startNode) {
-					buildTopo(pCurrent, pNext);
-				}
-			}
-			else if (pCurrent->direct == 3 && pNext->direct == 3) {
-				if (pCurrent->startNode == pNext->endNode) {
-					buildTopo(pCurrent, pNext);
-				}
-				else if (pCurrent->endNode == pNext->startNode) {
-					buildTopo(pNext, pCurrent);
-				}
-			}
-		};
-
 		// Link
-		for (int m = 0; m < links.size(); m++)
-		{
-			DbLink* pCurrent = (DbLink*)links[m];
-			auto currentDirect = pCurrent->direct;
-			auto currentGroups = pCurrent->lanePas;
-			for (int n = m + 1; n < links.size(); n++)
-			{
-				DbLink* pNext = (DbLink*)links[n];
-				auto nextDirect = pNext->direct;
-				auto nextGroups = pNext->lanePas;
-				if (pCurrent->direct != 1 && pNext->direct != 1) {
-					buildDirect23Topo(pCurrent, pNext);
-				}
-				else if(pCurrent->direct == 1 && pNext->direct == 1) {
-					pCurrent->direct = 2;
-					pNext->direct = 2;
-					pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-					pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-					buildDirect23Topo(pCurrent, pNext);
-
-					pCurrent->direct = 2;
-					pNext->direct = 3;
-					pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-					pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-					buildDirect23Topo(pCurrent, pNext);
-
-					pCurrent->direct = 3;
-					pNext->direct = 2;
-					pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-					pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-					buildDirect23Topo(pCurrent, pNext);
-
-					pCurrent->direct = 3;
-					pNext->direct = 3;
-					pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-					pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-					buildDirect23Topo(pCurrent, pNext);
-				}
-				else if (pCurrent->direct == 1 && (pNext->direct == 2 || pNext->direct == 3)) {
-					pCurrent->direct = 2;
-					pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-					buildDirect23Topo(pCurrent, pNext);
-
-					pCurrent->direct = 3;
-					pCurrent->lanePas = getGroups(pCurrent, currentGroups, pCurrent->direct);
-					buildDirect23Topo(pCurrent, pNext);
-				}
-				else if ((pCurrent->direct == 2 || pCurrent->direct == 3) && pNext->direct == 1) {
-					pNext->direct = 2;
-					pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-					buildDirect23Topo(pCurrent, pNext);
-
-					pNext->direct = 3;
-					pNext->lanePas = getGroups(pNext, nextGroups, pNext->direct);
-					buildDirect23Topo(pCurrent, pNext);
-				}
-
-				pNext->direct = nextDirect;
-				pNext->lanePas = nextGroups;
-				pCurrent->direct = currentDirect;
-				pCurrent->lanePas = currentGroups;
-			}
+		for (auto pair : nodes) {
+			buildTopo(pair.second->links);
 		}
-
 	}
 
 }

@@ -524,42 +524,42 @@ namespace OMDB
 
 	bool Compiler::isProDataLevel(HadLaneGroup* pLaneGroup)
 	{
-		bool tmp = false;
 		for (auto& relLink : pLaneGroup->relLinks) 
 		{
+			//if (relLink.first->originId == 84208750608718665)
+			//if (relLink.first->originId == 84207551130049503)
+				//printInfo("");
 			for (auto& tmpDataLevel : relLink.first->dataLevels)
 			{
-				if (tmpDataLevel.dataLevel == 1)
-					tmp = true;
+				bool isA = tmpDataLevel.startOffset == 0.0 && tmpDataLevel.endOffset == 0.0;
+				bool isB = tmpDataLevel.startOffset <= relLink.second.start + 0.01 &&
+					relLink.second.end <= tmpDataLevel.endOffset + 0.01;
+				if (isA || isB)
+				{
+					if (tmpDataLevel.dataLevel == 1)
+						return true;
+				}
 			}
 		}
-		return tmp;
+		return false;
 	}
 
 	bool Compiler::isProDataLevel(const std::vector<HadLaneGroup*>& pLaneGroups)
 	{
-		bool tmp = false;
 		if (!pLaneGroups.empty())
 		{
 			for (auto& pLaneGroup : pLaneGroups)
 			{
-				for (auto& relLink : pLaneGroup->relLinks)
-				{
-					for (auto& tmpDataLevel : relLink.first->dataLevels)
-					{
-						if (tmpDataLevel.dataLevel == 1)
-							tmp = true;
-					}
-				}
+				if (isProDataLevel(pLaneGroup))
+					return true;
 			}
 		}
 		else
 		{
-			tmp = true;
+			return true;
 		}
-		return tmp;
+		return false;
 	}
-
 
 	bool Compiler::isUTurn(HadLaneGroup* pLinkGroup)
 	{
@@ -590,7 +590,7 @@ namespace OMDB
                             });
                         // 合并重叠的区间
                         std::vector<RangeF> merged;
-						RangeF curRange = merged.front();
+						RangeF curRange = intervals.front();
                         for (int i = 1; i < intervals.size(); i++)
                         {
                             if (curRange.upper + 0.01 >= intervals[i].lower)
@@ -652,7 +652,7 @@ namespace OMDB
 							});
 						// 合并重叠的区间
 						std::vector<RangeF> merged;
-						RangeF curRange = merged.front();
+						RangeF curRange = intervals.front();
 						for (int i = 1; i < intervals.size(); i++)
 						{
 							if (curRange.upper + 0.01 >= intervals[i].lower)
@@ -1182,6 +1182,38 @@ namespace OMDB
 		return false;
 	}
 
+	HadRoadBoundaryNode* Compiler::getStartNode(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup)
+	{
+		auto startNode = pBoundary->startNode;
+		if (directionEqual(pBoundary, pGroup, 3))
+			startNode = pBoundary->endNode;
+		return startNode;
+	}
+
+	HadRoadBoundaryNode* Compiler::getEndNode(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup)
+	{
+		auto endNode = pBoundary->endNode;
+		if (directionEqual(pBoundary, pGroup, 3))
+			endNode = pBoundary->startNode;
+		return endNode;
+	}
+
+	HadLaneBoundaryNode* Compiler::getStartNode(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup)
+	{
+		auto startNode = pBoundary->startNode;
+		if (directionEqual(pBoundary, pGroup, 3))
+			startNode = pBoundary->endNode;
+		return startNode;
+	}
+
+	HadLaneBoundaryNode* Compiler::getEndNode(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup)
+	{
+		auto endNode = pBoundary->endNode;
+		if (directionEqual(pBoundary, pGroup, 3))
+			endNode = pBoundary->startNode;
+		return endNode;
+	}
+
 	LineString3d Compiler::getBoundaryLocation(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup)
 	{
 		LineString3d location = pBoundary->location;
@@ -1497,11 +1529,11 @@ namespace OMDB
 
 		if (isUseHullGroup && !isProDataLevel(pGroup))
 		{
-			auto resultIt = std::find(hullGroups.begin(), hullGroups.end(), pGroup);
-			if (resultIt != hullGroups.end())
+			auto resultIt = std::find(compilerData.hullGroups.begin(), compilerData.hullGroups.end(), pGroup);
+			if (resultIt != compilerData.hullGroups.end())
 			{
-				size_t index = std::distance(hullGroups.begin(), resultIt);  
-				bool isLeftHull = isLeftHulls.at(index);
+				size_t index = std::distance(compilerData.hullGroups.begin(), resultIt);
+				bool isLeftHull = compilerData.isLeftHulls.at(index);
 				if (pGroup->laneBoundaries.size() >= 3)
 				{
 					if (isLeftHull)
@@ -1610,6 +1642,32 @@ namespace OMDB
 		bbox.max.lon = *vx.rbegin();
 		bbox.max.lat = *vy.rbegin();
 		return bbox;
+	}
+
+	Box2TRTree::Ptr Compiler::getLineBox2TRTree()
+	{
+		auto& tmp = compilerData.m_rtreeLineBox;
+		if (tmp)
+			return tmp;
+
+		Box2TRTree::guardParam param;
+		auto& gridBoxes = compilerData.m_rdsLineBoxes;
+		Box2TRTree::indexGetterBox originIndBox(gridBoxes);
+		auto rtreeBox = std::make_shared<Box2TRTree::RTree>(boost::irange<std::size_t>(0lu, gridBoxes.size()), param, originIndBox);
+		compilerData.m_rtreeLineBox = rtreeBox;
+		return rtreeBox;
+	}
+
+	SegmentRTree::Ptr Compiler::getLineSegmentRTree()
+	{
+		auto& tmp = compilerData.rtreeGridLines;
+		if (tmp)
+			return tmp;
+		SegmentRTree::guardParam param;
+		SegmentRTree::indexGetterSegment originIndSeg(compilerData.gridLines);
+		auto tmpRTree = std::make_shared<SegmentRTree::RTree>(boost::irange<std::size_t>(0lu, compilerData.gridLines.size()), param, originIndSeg);
+		compilerData.rtreeGridLines = tmpRTree;
+		return tmpRTree;
 	}
 
 	Box2TRTree::Ptr Compiler::getIntersectionBox2TRTree()

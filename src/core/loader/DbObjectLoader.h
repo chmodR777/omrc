@@ -18,6 +18,7 @@ namespace OMDB
         void loadStopLocation();
         void loadTrafficLights();
         void loadPole();
+        void loadSpeedBump();
 
         void loadLgRel(const char* tableName, DbObjectType objectType);
         void loadLaneLinkRel(const char* tableName, DbObjectType objectType);

@@ -263,3 +263,109 @@ namespace hadc
 	}
 }
 
+
+
+namespace OMDB
+{
+	NearestPointOnLineSegmentsSearcher NearestPointOnLineSegmentsSearcher_make(const LineString3d& linestring)
+	{
+		return NearestPointOnLineSegmentsSearcher_make(linestring.vertexes);
+	}
+
+	NearestPointOnLineSegmentsSearcher NearestPointOnLineSegmentsSearcher_make(const std::vector<MapPoint3D64>& vertexes)
+	{
+		using Point = NearestPointOnLineSegmentsSearcher::Point;
+		using Segment = NearestPointOnLineSegmentsSearcher::Segment;
+
+		if (vertexes.size() < 2)
+			return NearestPointOnLineSegmentsSearcher{ {} };
+
+		std::vector<Segment> segments(vertexes.size() - 1);
+		for (std::size_t i = 1; i < vertexes.size(); ++i)
+		{
+			const MapPoint3D64& curVertex = vertexes[i];
+			const MapPoint3D64& prevVertex = vertexes[i - 1];
+			Point prevPoint{ static_cast<double>(prevVertex.pos.lon), static_cast<double>(prevVertex.pos.lat), static_cast<double>(prevVertex.z) };
+			Point curPoint{ static_cast<double>(curVertex.pos.lon), static_cast<double>(curVertex.pos.lat), static_cast<double>(curVertex.z) };
+			segments[i - 1] = Segment{ prevPoint , curPoint };
+		}
+
+		return NearestPointOnLineSegmentsSearcher{ std::move(segments) };
+	}
+
+	NearestPointOnLineSegmentsSearcher NearestPointOnLineSegmentsSearcher_make(const std::vector<Vector3>& linestring)
+	{
+		using Point = NearestPointOnLineSegmentsSearcher::Point;
+		using Segment = NearestPointOnLineSegmentsSearcher::Segment;
+
+		if (linestring.size() < 2)
+			return NearestPointOnLineSegmentsSearcher{ {} };
+
+
+		std::vector<Segment> segments(linestring.size() - 1);
+		for (std::size_t i = 1; i < linestring.size(); ++i)
+		{
+			Point prevPoint{ linestring[i - 1].x, linestring[i - 1].y, linestring[i - 1].z };
+			Point curPoint{ linestring[i].x, linestring[i].y, linestring[i].z };
+			segments[i - 1] = Segment{ prevPoint, curPoint };
+		}
+
+		return NearestPointOnLineSegmentsSearcher(std::move(segments));
+	}
+
+
+	NearestPointOnLineSegmentsSearcher::SearchResult NearestPointOnLineSegmentsSearcher::findNearestPointToSegment(const Segment& segment, const Point& point)
+	{
+		SearchResult searchResult;
+
+		// point a is segment[0], point b is segment[1], point c is point
+		double diffBAX = segment[1][0] - segment[0][0];
+		double diffBAY = segment[1][1] - segment[0][1];
+		double diffBAZ = segment[1][2] - segment[0][2];
+		double diffCAX = point[0] - segment[0][0];
+		double diffCAY = point[1] - segment[0][1];
+		double r = (diffBAX * diffCAX + diffBAY * diffCAY) / (diffBAX * diffBAX + diffBAY * diffBAY);
+
+		if (r <= 0.0)
+		{
+			searchResult.pointPosition = NearestPointPosition::SEGMENT_START;
+			searchResult.point = segment[0];
+		}
+		else if (r >= 1.0)
+		{
+			searchResult.pointPosition = NearestPointPosition::SEGMENT_END;
+			searchResult.point = segment[1];
+		}
+		else
+		{
+			searchResult.pointPosition = NearestPointPosition::SEGMENT_MIDDLE;
+			searchResult.point = Point{ segment[0][0] + r * diffBAX,
+				                        segment[0][1] + r * diffBAY,
+				                        segment[0][2] + r * diffBAZ };
+		}
+
+		searchResult.sqDist = PointSqDist(searchResult.point, point);
+
+		return searchResult;
+	}
+
+	NearestPointOnLineSegmentsSearcher::SearchResult NearestPointOnLineSegmentsSearcher::searchNearest(const Point& sourcePoint) const
+	{
+		if (m_segments.empty())
+			return SearchResult::invalidObj();
+
+		SearchResult result = SearchResult::invalidObj();
+		for (std::size_t i = 0; i < m_segments.size(); ++i)
+		{
+			const Segment& segment = m_segments[i];
+			SearchResult segmentResult = NearestPointOnLineSegmentsSearcher::findNearestPointToSegment(segment, sourcePoint);
+			segmentResult.nearestSegmentIndex = static_cast<int>(i);
+
+			if (segmentResult.sqDist < result.sqDist)
+				result = segmentResult;
+		}
+
+		return result;
+	}
+
+}
