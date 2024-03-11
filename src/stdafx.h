@@ -33,6 +33,7 @@
 #include "cpputil/polyline_tile_splitter.h"
 #include "tool_kit/safe_batched_allocator.h"
 #include "geometry/map_point3d64.h"
+#include "tool_kit/boost_geometry_utils.h"
 #define EXE_NAME "omrc"
 
 

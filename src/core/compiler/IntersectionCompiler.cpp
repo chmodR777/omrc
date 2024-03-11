@@ -30,9 +30,13 @@ namespace OMDB
 			m_hadInts = hadInts;
 
 			//判断是否为普通路
+			bool isProData = true;
+			if (!isProDataLevel(hadInts->refLaneGroups))
+				isProData = false;
+
 			if (CompileSetting::instance()->isNotCompileUrbanData)
 			{
-				if (!isProDataLevel(hadInts->refLaneGroups))
+				if (!isProData)
 					continue;
 			}
 
@@ -119,6 +123,7 @@ namespace OMDB
 
 			// 路口编译主流程 
 			Polygon3d originIntersctPoly;
+			std::vector<OMDB::LineString3d> curbLines;
 			for (size_t i = 1; i < tmpRing.size(); i++)
 			{
 				const auto& startPt = getRingPt(tmpRing, i - 1);
@@ -154,6 +159,15 @@ namespace OMDB
 						if (isEqualPoint2T(startPt, laneInfo._line2d.back()))
 							std::reverse(tmpEdge.begin(), tmpEdge.end());
 						originIntersctPoly.vertexes.insert(originIntersctPoly.vertexes.end(), tmpEdge.begin(), tmpEdge.end());
+						OMDB::LineString3d firstCurbLine;
+						firstCurbLine.vertexes.insert(firstCurbLine.vertexes.end(), tmpEdge.begin(), tmpEdge.end());
+						curbLines.push_back(firstCurbLine);
+
+						// 掉头路口中待补充绿化带的边界
+						//if (hadInts->isUTurn)
+						{
+							compilerData.greenbeltLines.push_back(firstCurbLine);
+						}
 						return true;
 					}
 
@@ -176,17 +190,23 @@ namespace OMDB
 				{
 					originIntersctPoly.vertexes.push_back(resultStartNodes.front()._originPosition);
 					originIntersctPoly.vertexes.push_back(resultEndNodes.front()._originPosition);
-					compilerData.stopLineToOriginIdMaps.emplace(compilerData.gridIntectionStopLines.size(), hadInts->originId);
-					compilerData.gridIntectionStopLines.push_back(segment_t(resultStartNodes.front()._point3d, resultEndNodes.front()._point3d));
+					if (hadInts->isUTurn)
+					{
+						compilerData.stopLineToOriginIdMaps.emplace(compilerData.gridIntectionStopLines.size(), hadInts->originId);
+						compilerData.gridIntectionStopLines.push_back(segment_t(resultStartNodes.front()._point3d, resultEndNodes.front()._point3d));
+					}
 					continue;
 				}
 
 				if (getOriginRoadResult())
 					continue;
 
+
+				OMDB::LineString3d secondCurbLine;
 				auto jNode = resultStartNodes.front();
 				auto kNode = resultEndNodes.front();
 				originIntersctPoly.vertexes.push_back(jNode._originPosition);
+				secondCurbLine.vertexes.push_back(originIntersctPoly.vertexes.back());
 				const auto& prevPt = getRingPt(tmpRing, i - 1, -1);
 				const auto& nextPt = getRingPt(tmpRing, i, 1);
 				point_2t startPtDir = { startPt.get<1>() - prevPt.get<1>() , startPt.get<0>() - prevPt.get<0>() };
@@ -233,9 +253,12 @@ namespace OMDB
 						auto curvePointMap = MapPoint3D64_make(curvePoint.get<0>(), curvePoint.get<1>(), curvePoint.get<2>() / 10);
 						coordinatesTransform.invert(&curvePointMap, 1);
 						originIntersctPoly.vertexes.push_back(curvePointMap);
+						secondCurbLine.vertexes.push_back(originIntersctPoly.vertexes.back());
 					}
 				}
 				originIntersctPoly.vertexes.push_back(kNode._originPosition);
+				secondCurbLine.vertexes.push_back(originIntersctPoly.vertexes.back());
+				curbLines.push_back(secondCurbLine);
 			}
 
 			//debug data
@@ -259,20 +282,29 @@ namespace OMDB
 			// 生成Rds数据
 			RdsIntersection* pInts = (RdsIntersection*)createObject(pTile, EntityType::RDS_INTERSECTION);
 			convert(originIntersctPoly, pInts->contour);
-			saveRdsIntersection(pInts, originIntersctPoly, hadInts->originId);
+
+			//高速路口不生成路牙
+			if (isProData)
+				curbLines.resize(0);
+
+			bool isSave = saveRdsIntersection(pInts, originIntersctPoly, hadInts->originId, curbLines);
 			for (auto laneGroup : hadInts->refLaneGroups)
 			{
 				RdsGroup* pRdsGroup = queryGroup(laneGroup->originId, pTile);
 				if (pRdsGroup)
+				{
 					pRdsGroup->objects.push_back(pInts);
+					if(isSave)
+						compilerData.m_rdsIntersections.back().rdsGroup = pRdsGroup;
+				}
 			}
 		}
 	}
 
-	void IntersectionCompiler::saveRdsIntersection(RdsIntersection* pIntersection, Polygon3d& originIntersctPoly, int64& originId)
+	bool IntersectionCompiler::saveRdsIntersection(RdsIntersection* pIntersection, Polygon3d& originIntersctPoly, int64& originId, const std::vector<OMDB::LineString3d>& curbLines)
 	{
 		if (pIntersection->contour.vertexes.empty())
-			return;
+			return false;
 
 		if (originIntersctPoly.vertexes.size() > 2)
 		{
@@ -289,9 +321,11 @@ namespace OMDB
 		tmp._intersectionBox2T = BOX_2T(originIntersctPoly.vertexes);
 		tmp._intersectionPoly2T = RING_2T(originIntersctPoly.vertexes);
 		tmp._intersectionPoints = LINESTRING_T(originIntersctPoly.vertexes);
+		tmp.curbLines = curbLines;
 		bg::correct(tmp._intersectionPoly2T);
 		compilerData.m_rdsIntersections.push_back(tmp);
 		compilerData.m_rdsIntersectionBoxes.push_back(tmp._intersectionBox2T);
+		return true;
 	}
 
 	void IntersectionCompiler::combineNearbyStopLine(ring_2t& tmpRing, rtree_2type& rtree, std::vector<NodeInfo>& originNodes)

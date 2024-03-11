@@ -14,6 +14,13 @@ namespace OMDB
 		static void buildTopo(HadLink* pCurrent,HadLink* pNext);
 		static void buildTopo(HadLaneGroup* pCurrent, HadLaneGroup* pNext);
 
+		static bool directionEqual(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup, int direction);
+		static bool directionEqual(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup, int direction);
+		static HadRoadBoundaryNode* getStartNode(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup);
+		static HadRoadBoundaryNode* getEndNode(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup);
+		static HadLaneBoundaryNode* getStartNode(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup);
+		static HadLaneBoundaryNode* getEndNode(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup);
+
 		static void buildTopoCrossGrid(HadGrid* center,const std::vector<HadGrid*>* nearby);
 
 		static void buildTopo(HadGrid* const grids);

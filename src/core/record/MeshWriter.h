@@ -40,9 +40,16 @@ namespace OMDB
 		void serializeTrafficLights(DbMesh* pMesh, ByteStreamWriter* streamWriter);
 		void serializePole(DbMesh* pMesh, ByteStreamWriter* streamWriter);
 		void serializeLaneTurnwaiting(DbMesh* pMesh, ByteStreamWriter* streamWriter);
+		void serializeSpeedBump(DbMesh* pMesh, ByteStreamWriter* streamWriter);
+		void serializeLaneInfo(DbMesh* pMesh, ByteStreamWriter* streamWriter);
+		void serializeZLevel(DbMesh* pMesh, ByteStreamWriter* streamWriter);
+		void serializeLinkName(DbMesh* pMesh, ByteStreamWriter* streamWriter);
+		void serializeRoadName(DbMesh* pMesh, ByteStreamWriter* streamWriter);
+		void serializeRdLinkLanePa(DbMesh* pMesh, ByteStreamWriter* streamWriter);
+		void serializeRdLaneLinkCLM(DbMesh* pMesh, ByteStreamWriter* streamWriter);
+		void serializeRdLaneTopoDetail(DbMesh* pMesh, ByteStreamWriter* streamWriter);
 		void serializePolyline3d(std::vector<MapPoint3D64>& points, ByteStreamWriter* ow);
-
-
+		void serializeWString(std::wstring& w_str, ByteStreamWriter& ow);
 
 	};
 

@@ -2,6 +2,8 @@
 #include "MeshReader.h"
 #include "DbMesh.h"
 #include "DbRecord.h"
+#include "CompileSetting.h"
+
 #pragma warning(disable:4700)
 #pragma warning(disable:4244)
 #pragma warning(disable:4018)
@@ -55,6 +57,17 @@ namespace OMDB
 		parseTrafficLight(pMesh, &streamReader);
 		parsePole(pMesh, &streamReader);
 		parseLaneTurnwaiting(pMesh, &streamReader);
+
+		if (CompileSetting::instance()->isGenerateHdData)
+		{
+			parseLaneInfo(pMesh, &streamReader);
+			parseZLevel(pMesh, &streamReader);
+			parseLinkName(pMesh, &streamReader);
+			parseRoadName(pMesh, &streamReader);
+			parseRdLinkLanePa(pMesh, &streamReader);
+			parseRdLaneLinkCLM(pMesh, &streamReader);
+			parseRdLaneTopoDetail(pMesh, &streamReader);
+		}
 	}
 	void MeshReader::parsePolyline3d(std::vector<MapPoint3D64>& points, ByteStreamReader* streamReader)
 	{
@@ -121,6 +134,20 @@ namespace OMDB
 			}
 		}
 	}
+	void MeshReader::parseWString(std::wstring& w_str, ByteStreamReader* streamReader)
+	{
+		uint32 sz{ 0 };
+		streamReader->readVarUint32(&sz);
+		if (sz != 0)
+		{
+			void* ss = malloc(sz + 1);
+			streamReader->readBytes(ss, sz + 1);
+			//pText->textContent = (const char*)ss;
+			std::string textContent = (const char*)ss;
+			w_str = String2WString(textContent);
+			free(ss);
+		}
+	}
 	void MeshReader::parseLink(DbMesh* pMesh, ByteStreamReader* streamReader)
 	{
 		uint64 bytesize;
@@ -147,6 +174,18 @@ namespace OMDB
 				streamReader->readVarInt32(&pLink->median_left);
 				streamReader->readVarInt32(&pLink->median_right);
 				streamReader->readVarInt32(&pLink->overhead_obstruction);
+
+				streamReader->readVarInt32(&pLink->bridge_type);
+				streamReader->readVarInt32(&pLink->is_overline_flyover);
+				streamReader->readVarInt32(&pLink->is_viaduct);
+				streamReader->readVarInt32(&pLink->function_class);
+				streamReader->readVarInt32(&pLink->frontage);
+				streamReader->readVarInt32(&pLink->lane_num);
+				streamReader->readVarInt32(&pLink->lane_s2e);
+				streamReader->readVarInt32(&pLink->lane_e2s);
+				streamReader->readVarInt32(&pLink->lane_class);
+				streamReader->readVarInt32(&pLink->pave_status);
+
 				uint32 wayTypeSize;
 				streamReader->readVarUint32(&wayTypeSize);
 				for (int j = 0; j < wayTypeSize; j++) {
@@ -239,6 +278,23 @@ namespace OMDB
 					parsePolyline3d(tollArea.geometry.postions, streamReader);
 					pLink->tollAreas.push_back(tollArea);
 				}
+
+				if (CompileSetting::instance()->isGenerateHdData)
+				{
+					uint32 relLaneInfoSize;
+					streamReader->readVarUint32(&relLaneInfoSize);
+					for (int j = 0; j < relLaneInfoSize; j++)
+					{
+						DbLink::DbRelLaneInfo rel;
+						int64 id;
+						streamReader->readInt64(&id);
+
+						streamReader->readVarInt32(&rel.seqNum);
+						streamReader->readVarInt32(&rel.direct);
+						pLink->relLaneInfos.emplace(id, rel);
+					}
+				}
+
 				parsePolyline3d(pLink->geometry.vertexes, streamReader);
 				pMesh->insert(pLink->uuid, pLink);
 			}
@@ -1110,18 +1166,7 @@ namespace OMDB
 				streamReader->readVarInt32(&pText->color);
 				streamReader->readVarInt32(&pText->width);
 				streamReader->readVarInt32(&pText->length);
-
-				uint32 sz{0};
-				streamReader->readVarUint32(&sz);
-				if (sz != 0)
-				{
-					void* ss = malloc(sz+1 );
-					streamReader->readBytes(ss, sz+1);
-					//pText->textContent = (const char*)ss;
-					std::string textContent = (const char*)ss;
-					pText->textContent = String2WString(textContent);
-					free(ss);
-				}
+				parseWString(pText->textContent, streamReader);
 				streamReader->readInt64(&pText->center.pos.lon);
 				streamReader->readInt64(&pText->center.pos.lat);
 				streamReader->readInt32(&pText->center.z);
@@ -1357,19 +1402,7 @@ namespace OMDB
 				streamReader->readInt64(&pGate->geometry.pos.lat);
 				streamReader->readInt32(&pGate->geometry.z);
 
-
-                uint32 sz{ 0 };
-                streamReader->readVarUint32(&sz);
-                if (sz != 0)
-                {
-                    void* ss = malloc(sz + 1);
-                    streamReader->readBytes(ss, sz + 1);
-                    //pText->textContent = (const char*)ss;
-                    std::string  tollName = (const char*)ss;
-					pGate->tollName = String2WString(tollName);
-                    free(ss);
-                }
-
+				parseWString(pGate->tollName, streamReader);
 
 				uint32 lz;
 				streamReader->readVarUint32(&lz);
@@ -1502,6 +1535,374 @@ namespace OMDB
         streamReader->seek(nextPos);
     }
 
+	void MeshReader::parseLaneInfo(DbMesh* pMesh, ByteStreamReader* streamReader)
+	{
+		uint64 bytesize;
+		streamReader->readVarUint64(&bytesize);
+		uint32 nextPos = (uint32)streamReader->positionInBytes() + bytesize;
 
+		uint8 type;
+		streamReader->readUint8(&type);
+		if (type == (uint8)RecordType::DB_HAD_LANEINFO)
+		{
+			uint32 size;
+			streamReader->readVarUint32(&size);
+			for (int i = 0; i < size; i++)
+			{
+				DbLaneInfo* pLaneInfo = (DbLaneInfo*)pMesh->alloc(RecordType::DB_HAD_LANEINFO);
+
+				streamReader->readInt64(&pLaneInfo->uuid);
+				parseWString(pLaneInfo->inLaneInfo, streamReader);
+				parseWString(pLaneInfo->extendLaneInfo, streamReader);
+				parseWString(pLaneInfo->busLaneInfo, streamReader);
+				streamReader->readVarInt32(&pLaneInfo->reachDir);
+				pMesh->insert(pLaneInfo->uuid, pLaneInfo);
+			}
+		}
+		uint32 s = std::abs((int)streamReader->positionInBytes() - (int)nextPos);
+		if (s > 1)
+		{
+			printInfo("-----------------parseLaneInfo----------------------");
+			printInfo("nextpos = %d", s);
+		}
+		streamReader->seek(nextPos);
+
+	}
+
+	void MeshReader::parseZLevel(DbMesh* pMesh, ByteStreamReader* streamReader)
+	{
+		uint64 bytesize;
+		streamReader->readVarUint64(&bytesize);
+		uint32 nextPos = (uint32)streamReader->positionInBytes() + bytesize;
+
+		uint8 type;
+		streamReader->readUint8(&type);
+		if (type == (uint8)RecordType::DB_HAD_ZLEVEL)
+		{
+			uint32 size;
+			streamReader->readVarUint32(&size);
+			for (int i = 0; i < size; i++)
+			{
+				DbZLevel* pZLevel = (DbZLevel*)pMesh->alloc(RecordType::DB_HAD_ZLEVEL);
+				streamReader->readInt64(&pZLevel->uuid);
+				uint32 relSize;
+				streamReader->readVarUint32(&relSize);
+				for (int j = 0; j < relSize; j++)
+				{
+					DbZLevel::DbRelLink rel;
+					streamReader->readInt64(&rel.relLinkid);
+					streamReader->readVarInt32(&rel.shpSeqNum);
+					streamReader->readVarInt32(&rel.startEnd);
+					streamReader->readVarInt32(&rel.zLevel);
+					streamReader->readInt64(&rel.geometry.pos.lon);
+					streamReader->readInt64(&rel.geometry.pos.lat);
+					streamReader->readInt32(&rel.geometry.z);
+
+					rel.dbZLevel = pZLevel;
+					pZLevel->relLinks.push_back(rel);
+				}
+				pMesh->insert(pZLevel->uuid, pZLevel);
+			}
+		}
+
+		uint32 s = std::abs((int)streamReader->positionInBytes() - (int)nextPos);
+		if (s > 1)
+		{
+			printInfo("-----------------parseZLevel----------------------");
+			printInfo("nextpos = %d", s);
+		}
+		streamReader->seek(nextPos);
+	}
+
+	void MeshReader::parseLinkName(DbMesh* pMesh, ByteStreamReader* streamReader)
+	{
+		uint64 bytesize;
+		streamReader->readVarUint64(&bytesize);
+		uint32 nextPos = (uint32)streamReader->positionInBytes() + bytesize;
+
+		uint8 type;
+		streamReader->readUint8(&type);
+		if (type == (uint8)RecordType::DB_HAD_LINK_NAME)
+		{
+			uint32 size;
+			streamReader->readVarUint32(&size);
+			for (int i = 0; i < size; i++)
+			{
+				DbLinkName* pLinkName = (DbLinkName*)pMesh->alloc(RecordType::DB_HAD_LINK_NAME);
+				streamReader->readInt64(&pLinkName->uuid);
+				uint32 relSize;
+				streamReader->readVarUint32(&relSize);
+				for (int j = 0; j < relSize; j++)
+				{
+					DbLinkName::DbLinkNamePa rel;
+					streamReader->readVarInt32(&rel.featureType);
+
+					int64 s, e;
+					streamReader->readInt64(&s);
+					streamReader->readInt64(&e);
+					rel.startOffset = s * 1.0 / 1e6;
+					rel.endOffset = e * 1.0 / 1e6;
+					parsePolyline3d(rel.geometry.postions, streamReader);
+
+					streamReader->readInt32(&rel.nameGroup);
+					streamReader->readVarInt32(&rel.seqNum);
+					streamReader->readVarInt32(&rel.nameClass);
+					streamReader->readVarInt32(&rel.nameType);
+					pLinkName->linkNamePas.push_back(rel);
+				}
+				pMesh->insert(pLinkName->uuid, pLinkName);
+			}
+		}
+
+		uint32 s = std::abs((int)streamReader->positionInBytes() - (int)nextPos);
+		if (s > 1)
+		{
+			printInfo("-----------------parseLinkName----------------------");
+			printInfo("nextpos = %d", s);
+		}
+		streamReader->seek(nextPos);
+	}
+
+	void MeshReader::parseRoadName(DbMesh* pMesh, ByteStreamReader* streamReader)
+	{
+		uint64 bytesize;
+		streamReader->readVarUint64(&bytesize);
+		uint32 nextPos = (uint32)streamReader->positionInBytes() + bytesize;
+
+		uint8 type;
+		streamReader->readUint8(&type);
+		if (type == (uint8)RecordType::DB_ROAD_NAME)
+		{
+			uint32 size;
+			streamReader->readVarUint32(&size);
+			for (int i = 0; i < size; i++)
+			{
+				DbRoadName* pRoadName = (DbRoadName*)pMesh->alloc(RecordType::DB_ROAD_NAME);
+				streamReader->readInt64(&pRoadName->uuid);
+				uint32 relSize;
+				streamReader->readVarUint32(&relSize);
+				for (int j = 0; j < relSize; j++)
+				{
+					DbRoadName::DbRoadNameGroup rel;
+					parseWString(rel.langCode, streamReader);
+					parseWString(rel.name, streamReader);
+					parseWString(rel.type, streamReader);
+					parseWString(rel.base, streamReader);
+					parseWString(rel.prefix, streamReader);
+					parseWString(rel.suffix, streamReader);
+					streamReader->readVarInt32(&rel.codeType);
+					pRoadName->nameGroups.push_back(rel);
+				}
+				pMesh->insert(pRoadName->uuid, pRoadName);
+			}
+		}
+
+		uint32 s = std::abs((int)streamReader->positionInBytes() - (int)nextPos);
+		if (s > 1)
+		{
+			printInfo("-----------------parseRoadName----------------------");
+			printInfo("nextpos = %d", s);
+		}
+		streamReader->seek(nextPos);
+	}
+
+	void MeshReader::parseRdLinkLanePa(DbMesh* pMesh, ByteStreamReader* streamReader)
+	{
+		uint64 bytesize;
+		streamReader->readVarUint64(&bytesize);
+		uint32 nextPos = (uint32)streamReader->positionInBytes() + bytesize;
+
+		uint8 type;
+		streamReader->readUint8(&type);
+		if (type == (uint8)RecordType::DB_RD_LINK_LANEPA)
+		{
+			uint32 size;
+			streamReader->readVarUint32(&size);
+			for (int i = 0; i < size; i++)
+			{
+				DbRdLinkLanePa* pLinkLanePa = (DbRdLinkLanePa*)pMesh->alloc(RecordType::DB_RD_LINK_LANEPA);
+
+				streamReader->readInt64(&pLinkLanePa->uuid);
+				uint32 relSize;
+				streamReader->readVarUint32(&relSize);
+				for (int j = 0; j < relSize; j++)
+				{
+					DbRdLinkLanePa::DbRelLink rel;
+					int64 id;
+					streamReader->readInt64(&id);
+					streamReader->readInt64(&rel.relLinkid);
+
+					int64 s, e;
+					streamReader->readInt64(&s);
+					streamReader->readInt64(&e);
+					rel.startOffset = s * 1.0 / 1e6;
+					rel.endOffset = e * 1.0 / 1e6;
+					streamReader->readVarInt32(&rel.type);
+					streamReader->readVarInt32(&rel.directType);
+					pLinkLanePa->relLinks.emplace(id, rel);
+				}
+				uint32 relRdLinkLaneSize;
+				streamReader->readVarUint32(&relRdLinkLaneSize);
+				for (int j = 0; j < relRdLinkLaneSize; j++)
+				{
+					DbRdLinkLanePa::DbRelRdLinkLane rel;
+					streamReader->readInt64(&rel.relLinkLaneId);
+					streamReader->readVarInt32(&rel.seqNum);
+					pLinkLanePa->relLinkLanes.push_back(rel);
+				}
+				pMesh->insert(pLinkLanePa->uuid, pLinkLanePa);
+			}
+		}
+		uint32 s = std::abs((int)streamReader->positionInBytes() - (int)nextPos);
+		if (s > 1)
+		{
+			printInfo("-----------------parseRdLinkLanePa----------------------");
+			printInfo("nextpos = %d", s);
+		}
+		streamReader->seek(nextPos);
+	}
+
+	void MeshReader::parseRdLaneLinkCLM(DbMesh* pMesh, ByteStreamReader* streamReader)
+	{
+		uint64 bytesize;
+		streamReader->readVarUint64(&bytesize);
+		uint32 nextPos = (uint32)streamReader->positionInBytes() + bytesize;
+
+		uint8 type;
+		streamReader->readUint8(&type);
+		if (type == (uint8)RecordType::DB_RD_LANE_LINK_CLM)
+		{
+			uint32 size;
+			streamReader->readVarUint32(&size);
+			for (int i = 0; i < size; i++)
+			{
+				DbRdLaneLinkCLM* pLaneLinkCLM = (DbRdLaneLinkCLM*)pMesh->alloc(RecordType::DB_RD_LANE_LINK_CLM);
+				streamReader->readInt64(&pLaneLinkCLM->uuid);
+				streamReader->readVarInt32(&pLaneLinkCLM->laneType);
+				streamReader->readVarInt32(&pLaneLinkCLM->tranType);
+				parseWString(pLaneLinkCLM->arrowDir, streamReader);
+
+				uint32 relAccessSize;
+				streamReader->readVarUint32(&relAccessSize);
+				for (int j = 0; j < relAccessSize; j++)
+				{
+					DbRdLaneLinkCLM::DbRdLaneLinkAccessCLM rel;
+					streamReader->readVarInt32(&rel.characteristic);
+					parseWString(rel.validPeriod, streamReader);
+					pLaneLinkCLM->accesses.push_back(rel);
+				}
+				uint32 relConditionSize;
+				streamReader->readVarUint32(&relConditionSize);
+				for (int j = 0; j < relConditionSize; j++)
+				{
+					DbRdLaneLinkCLM::DbRdLaneLinkConditionCLM rel;
+					streamReader->readVarInt32(&rel.type);
+					streamReader->readVarInt32(&rel.direct);
+					parseWString(rel.validPeriod, streamReader);
+					pLaneLinkCLM->conditions.push_back(rel);
+				}
+				uint32 relSpeedLimitSize;
+				streamReader->readVarUint32(&relSpeedLimitSize);
+				for (int j = 0; j < relSpeedLimitSize; j++)
+				{
+					DbRdLaneLinkCLM::DbRdLaneLinkSpeedLimitCLM rel;
+					streamReader->readVarInt32(&rel.maxSpeed);
+					streamReader->readVarInt32(&rel.minSpeed);
+					pLaneLinkCLM->speedLimits.push_back(rel);
+				}
+				pMesh->insert(pLaneLinkCLM->uuid, pLaneLinkCLM);
+			}
+		}
+		uint32 s = std::abs((int)streamReader->positionInBytes() - (int)nextPos);
+		if (s > 1)
+		{
+			printInfo("-----------------parseRdLaneLinkCLM----------------------");
+			printInfo("nextpos = %d", s);
+		}
+		streamReader->seek(nextPos);
+	}
+
+	void MeshReader::parseRdLaneTopoDetail(DbMesh* pMesh, ByteStreamReader* streamReader)
+	{
+		uint64 bytesize;
+		streamReader->readVarUint64(&bytesize);
+		uint32 nextPos = (uint32)streamReader->positionInBytes() + bytesize;
+
+		uint8 type;
+		streamReader->readUint8(&type);
+		if (type == (uint8)RecordType::DB_RD_LANE_TOPO_DETAIL)
+		{
+			uint32 size;
+			streamReader->readVarUint32(&size);
+			for (int i = 0; i < size; i++)
+			{
+				DbRdLaneTopoDetail* pLaneTopoDetail = (DbRdLaneTopoDetail*)pMesh->alloc(RecordType::DB_RD_LANE_TOPO_DETAIL);
+				streamReader->readInt64(&pLaneTopoDetail->uuid);
+				streamReader->readInt64(&pLaneTopoDetail->inLaneLinkPid);
+				streamReader->readInt64(&pLaneTopoDetail->outLaneLinkPid);
+				streamReader->readVarInt32(&pLaneTopoDetail->throughTurn);
+				streamReader->readVarInt32(&pLaneTopoDetail->laneChange);
+
+				uint32 relAccessSize;
+				streamReader->readVarUint32(&relAccessSize);
+				for (int j = 0; j < relAccessSize; j++)
+				{
+					DbRdLaneTopoDetail::DbRdLaneTopoCond rel;
+					streamReader->readVarInt32(&rel.vehicleType);
+					parseWString(rel.validPeriod, streamReader);
+					pLaneTopoDetail->conditions.push_back(rel);
+				}
+				uint32 relConditionSize;
+				streamReader->readVarUint32(&relConditionSize);
+				for (int j = 0; j < relConditionSize; j++)
+				{
+					DbRdLaneTopoDetail::DbRdLaneTopoVia rel;
+					streamReader->readInt64(&rel.relLinkLaneId);
+					streamReader->readVarInt32(&rel.seqNum);
+					pLaneTopoDetail->viaLinkLanes.push_back(rel);
+				}
+				pMesh->insert(pLaneTopoDetail->uuid, pLaneTopoDetail);
+			}
+		}
+		uint32 s = std::abs((int)streamReader->positionInBytes() - (int)nextPos);
+		if (s > 1)
+		{
+			printInfo("-----------------parseRdLaneTopoDetail----------------------");
+			printInfo("nextpos = %d", s);
+		}
+		streamReader->seek(nextPos);
+	}
+
+	void MeshReader::parseSpeedBump(DbMesh* pMesh, ByteStreamReader* streamReader)
+	{
+		uint64 bytesize;
+		streamReader->readVarUint64(&bytesize);
+		uint32 nextPos = (uint32)streamReader->positionInBytes() + bytesize;
+		uint8 type;
+		streamReader->readUint8(&type);
+		if (type == (uint8)RecordType::DB_HAD_OBJECT_SPEED_BUMP)
+		{
+			uint32 size;
+			streamReader->readVarUint32(&size);
+			for (int i = 0; i < size; i++)
+			{
+				DbSpeedBump* pSpeedBump = (DbSpeedBump*)pMesh->alloc(RecordType::DB_HAD_OBJECT_SPEED_BUMP);
+				streamReader->readInt64(&pSpeedBump->uuid);
+				int32 heading;
+				streamReader->readVarInt32(&heading);
+				pSpeedBump->heading = heading / 1000;
+				parsePolyline3d(pSpeedBump->geometry.vertexes, streamReader);
+				pMesh->insert(pSpeedBump->uuid, pSpeedBump);
+			}
+		}
+		uint32 s = std::abs((int)streamReader->positionInBytes() - (int)nextPos);
+		if (s > 1)
+		{
+			printInfo("-----------------parseSpeedBump----------------------");
+			printInfo("nextpos = %d", s);
+		}
+		streamReader->seek(nextPos);
+
+	}
 
 }

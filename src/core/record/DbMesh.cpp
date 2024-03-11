@@ -64,6 +64,7 @@ namespace OMDB
 					 FREE_RECORD(RecordType::DB_RD_LINK_LANEPA, DbRdLinkLanePa)
 					 FREE_RECORD(RecordType::DB_RD_LANE_LINK_CLM, DbRdLaneLinkCLM)
 					 FREE_RECORD(RecordType::DB_RD_LANE_TOPO_DETAIL, DbRdLaneTopoDetail)
+					 FREE_RECORD(RecordType::DB_HAD_OBJECT_SPEED_BUMP, DbSpeedBump)
 			}
 		}
 		m_batchedAllocator.freeAll();
@@ -140,13 +141,14 @@ namespace OMDB
 				ALLOC_RECORD(RecordType::DB_RD_LINK_LANEPA, DbRdLinkLanePa)
 				ALLOC_RECORD(RecordType::DB_RD_LANE_LINK_CLM, DbRdLaneLinkCLM)
 				ALLOC_RECORD(RecordType::DB_RD_LANE_TOPO_DETAIL, DbRdLaneTopoDetail)
+				ALLOC_RECORD(RecordType::DB_HAD_OBJECT_SPEED_BUMP, DbSpeedBump)
 		}
 		return pRecord;
 	}
 
 	void DbMesh::insert(int64 id, DbRecord* record)
 	{
-		if (438130976007165448 == id)
+		if (291125322845137957 == id)
 			printf("");
 		record->owner = this;
 		auto iter = m_tbTable.find(record->recordType);
@@ -185,15 +187,6 @@ namespace OMDB
 		return iter->second.values();
 	}
 
-	bool DbMesh::erase(int64 id, RecordType recordType)
-	{
-		auto iter = m_tbTable.find(recordType);
-		if (iter == m_tbTable.end())
-			return false;
-
-		return iter->second.erase(id);
-	}
-
 	FastTable<int64, DbRecord*>& DbMesh::queryTable(RecordType recordType)
 	{
 		auto iter = m_tbTable.find(recordType);
@@ -206,6 +199,22 @@ namespace OMDB
 	void DbMesh::setId(int32 id)
 	{
 		m_meshId = id;
+		uint32 ndsId = MeshId_toNdsGridId(id);
+		Rect rect;
+		NdsGridId_getRect(ndsId, &rect);
+
+		Point min02;
+		Point min84{ rect.left,rect.top };
+		Math_wgsToMars(&min84, &min02);
+
+		Point max02;
+		Point max84{ rect.right,rect.bottom };
+		Math_wgsToMars(&max84, &max02);
+
+		m_extent.min.lat = (int64)min02.y * 1000;
+		m_extent.min.lon = (int64)min02.x * 1000;
+		m_extent.max.lat = (int64)max02.y * 1000;
+		m_extent.max.lon = (int64)max02.x * 1000;
 	}
 
 	int32 DbMesh::getId()
@@ -213,8 +222,19 @@ namespace OMDB
 		return m_meshId;
 	}
 
+	dbLinkInfo& DbMesh::queryLinkInfo(int64 id)
+	{
+		auto iter = m_linkIndexes.find(id);
+		return m_links[iter->second];
+	}
+
 	void DbMesh::insertLinkInfo(dbLinkInfo& info)
 	{
+		auto id = info._link->uuid;
+		if (m_linkIndexes.find(id) != m_linkIndexes.end())
+			return;
+
+		m_linkIndexes.emplace(id, m_links.size());
 		m_links.push_back(info);
 		m_linkBoxes.push_back(info._linkBox2T);
 	}
@@ -232,5 +252,39 @@ namespace OMDB
 		index_getter_2box originIndBox(m_linkBoxes);
 		m_linkRtree = std::make_shared<rtree_type_2box>(boost::irange<std::size_t>(0lu, m_linkBoxes.size()), param, originIndBox);
 		return m_linkRtree;
+	}
+
+	lanePaInfo& DbMesh::queryLanePaInfo(int64 id)
+	{
+		auto iter = m_lanePaIndexes.find(id);
+		return m_lanePas[iter->second];
+	}
+
+	void DbMesh::insertLanePaInfo(lanePaInfo& info)
+	{
+		auto id = info._lanePa->uuid;
+		if (m_lanePaIndexes.find(id) != m_lanePaIndexes.end())
+			return;
+
+		m_lanePaIndexes.emplace(id, m_lanePas.size());
+		m_lanePas.push_back(info);
+		m_lanePaBoxes.push_back(info._lanePaBox2T);
+	}
+
+	std::vector<lanePaInfo>& DbMesh::getLanePaInfos()
+	{
+		return m_lanePas;
+	}
+
+	std::shared_ptr<rtree_type_2box> DbMesh::getLanePaRtree()
+	{
+		auto& tmp = m_lanePaRtree;
+		if (tmp || m_lanePaBoxes.empty())
+			return tmp;
+
+		parameters param;
+		index_getter_2box originIndBox(m_lanePaBoxes);
+		m_lanePaRtree = std::make_shared<rtree_type_2box>(boost::irange<std::size_t>(0lu, m_lanePaBoxes.size()), param, originIndBox);
+		return m_lanePaRtree;
 	}
 }

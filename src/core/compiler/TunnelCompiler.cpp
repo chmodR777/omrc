@@ -782,7 +782,7 @@ namespace OMDB
 		getTunnelsMiddleLines(nTunnel->tunnnels, false, middleLine);
 
 	
-		if (lineShape.lines.size() != 2)
+		if (lineShape.lines.size() != 2 || middleLine.vertexes.empty())
 		{
 			return false;
 		}
@@ -869,7 +869,7 @@ namespace OMDB
 		// 设置主要线
 		setYTunnelMixExtendTunnelGeoLine(yTunnel->main);
 
-		if (yTunnel->main->_leftLine.vertexes.empty() || yTunnel->main->_rightLine.vertexes.empty())
+		if (yTunnel->main->_leftLine.vertexes.empty() || yTunnel->main->_rightLine.vertexes.empty() || yTunnel->main->_middleLine.vertexes.empty())
 		{
 			return false;
 		}
@@ -922,7 +922,7 @@ namespace OMDB
 				// 中心线
 				getTunnelsMiddleLines(tunnnels, true, middleLine);
 
-				if (lineVector.lines.size() != 2)
+				if (lineVector.lines.size() != 2 || middleLine.vertexes.empty())
 				{
 					return false;
 				}
@@ -944,7 +944,7 @@ namespace OMDB
 				getTunnelsMiddleLines(tunnnels, true, middleLine);
 				std::reverse(middleLine.vertexes.begin(), middleLine.vertexes.end());
 
-				if (lineVector.lines.size() != 2)
+				if (lineVector.lines.size() != 2 || middleLine.vertexes.empty())
 				{
 					return false;
 				}
@@ -966,7 +966,7 @@ namespace OMDB
 				std::vector<TunnelLink *> tunnnels = yTunnel->left;
 				getTunnelsShape(tunnnels, false, lineVector);
 				getTunnelsMiddleLines(tunnnels, false, middleLine);
-				if (lineVector.lines.size() != 2)
+				if (lineVector.lines.size() != 2 || middleLine.vertexes.empty())
 				{
 					return false;
 				}
@@ -984,6 +984,10 @@ namespace OMDB
 				std::vector<TunnelLink *> tunnnels = yTunnel->right;
 				getTunnelsShape(tunnnels, false, rightlineVector);
 				getTunnelsMiddleLines(tunnnels, false, middleLine);
+				if (lineVector.lines.size() != 2 || middleLine.vertexes.empty())
+				{
+					return false;
+				}
 
 				rightlineVector.lines.emplace_back(lineVector.lines[0]);
 				rightlineVector.lines.emplace_back(middleLine);
@@ -2024,6 +2028,8 @@ namespace OMDB
 		offseter1.AddPath(path_v1, ClipperLib::jtSquare, ClipperLib::etClosedPolygon);
 		ClipperLib::Paths extObjePaths1;
 		offseter1.Execute(extObjePaths1, OFFSET_IN_METER * LAT_UNIT_PER_METER * 400);
+		if (extObjePaths1.empty())
+			return false;
 		ClipperLib::Path &extObjPath1 = extObjePaths1[0];
 
 		// 扩大
@@ -2031,6 +2037,8 @@ namespace OMDB
 		offseter2.AddPath(path_v2, ClipperLib::jtSquare, ClipperLib::etClosedPolygon);
 		ClipperLib::Paths extObjePaths2;
 		offseter2.Execute(extObjePaths2, OFFSET_IN_METER * LAT_UNIT_PER_METER * 400);
+		if (extObjePaths2.empty())
+			return false;
 		ClipperLib::Path &extObjPath2 = extObjePaths2[0];
 
 		// 相交

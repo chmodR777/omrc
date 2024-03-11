@@ -37,6 +37,9 @@ namespace OMDB
         loadLaneLinkRel("HAD_OBJECT_TRAFFIC_LIGHTS_LANE", DbObjectType::TRAFFIC_LIGHTS);
 
         loadPole();
+
+        loadSpeedBump();
+        loadLgRel("HAD_OBJECT_SPEED_BUMP_LG", DbObjectType::SPEED_BUMP);
     }
 
     void DbObjectLoader::loadBarrier()
@@ -249,6 +252,22 @@ namespace OMDB
 		}
 	}
 
+    void DbObjectLoader::loadSpeedBump()
+    {
+        std::string sql = "SELECT OBJECT_PID,HEADING,GEOMETRY FROM HAD_OBJECT_SPEED_BUMP";
+        recordIterator.resetWithSqlStr(sql);
+        while (recordIterator.hasNextRecord())
+        {
+            sqlite3_stmt* stmt = recordIterator.record();
+            DbSpeedBump* pSpeedBump = (DbSpeedBump*)m_pDatabase->alloc(RecordType::DB_HAD_OBJECT_SPEED_BUMP);
+            pSpeedBump->uuid = sqlite3_column_int64(stmt, 0);
+            pSpeedBump->heading = sqlite3_column_double(stmt, 1);
+            const unsigned char* geometry = (const unsigned char*)sqlite3_column_blob(stmt, 2);
+            int size = sqlite3_column_bytes(stmt, 2);
+            prasePolygon3d(geometry, size, pSpeedBump->geometry);
+            m_pDatabase->insert(pSpeedBump->uuid, pSpeedBump);
+        }
+    }
 
     void DbObjectLoader::loadLgRel(const char* tableName, DbObjectType objectType)
     {

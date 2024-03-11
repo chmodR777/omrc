@@ -167,16 +167,19 @@ namespace OMDB
 			}
 		}
 
-		//高架桥上的压低相机属性
+		//高架桥上的压低相机属性，只有非高速才输出压盖属性
 		for (auto obj : pGrid->query(ElementType::HAD_LINK))
 		{
 			HadLink* pLink = (HadLink*)obj;
-			if (checkOverlayOnLink(pLink))
+			if (!isProDataLevel(pLink->groups))
 			{
-				auto it = isLowerCameraLinkMap.find(pLink->originId);
-				if (it == isLowerCameraLinkMap.end())
+				if (checkOverlayOnLink(pLink))
 				{
-					isLowerCameraLinkMap.emplace(pLink->originId, 1);
+					auto it = isLowerCameraLinkMap.find(pLink->originId);
+					if (it == isLowerCameraLinkMap.end())
+					{
+						isLowerCameraLinkMap.emplace(pLink->originId, 1);
+					}
 				}
 			}
 		}

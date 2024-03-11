@@ -205,7 +205,9 @@ namespace OMDB
 			[&](const HadLaneGroup* first, const HadLaneGroup* second)->bool {
 				auto relLinkFirst = first->relLinks.find(pLink);
 				auto relLInkSecond = second->relLinks.find(pLink);
-				return relLinkFirst->second.start < relLInkSecond->second.start;
+				if (relLinkFirst->second.start != relLInkSecond->second.start)
+					return relLinkFirst->second.start < relLInkSecond->second.start;
+				return relLinkFirst->second.end < relLInkSecond->second.end;
 			}
 		);
 
@@ -356,11 +358,17 @@ namespace OMDB
 		const float CONNECT_POINT_EPSILON = 500.f;  // ¡Ö0.5m
 		for (auto& iItem : pCurrent->roadBoundaries)
 		{
-			auto& endPt = iItem->endNode->position;
+			auto endNode = getEndNode(iItem, pCurrent);
+			if (endNode == nullptr)
+				continue;
+			auto& endPt = endNode->position;
 			for (auto& jItem : pNext->roadBoundaries)
 			{
-				auto& startPt = jItem->startNode->position;
-				if (iItem->endNode->originId == jItem->startNode->originId || 
+				auto startNode = getStartNode(jItem, pNext);
+				if (startNode == nullptr)
+					continue;
+				auto& startPt = startNode->position;
+				if (endNode->originId == startNode->originId ||
 					endPt.pos.distance(startPt.pos) < CONNECT_POINT_EPSILON) {
 					isBuildLaneGroupTopo = true;
 					break;
@@ -372,11 +380,17 @@ namespace OMDB
 		if (!isBuildLaneGroupTopo) {
 			for (auto& iItem : pCurrent->laneBoundaries)
 			{
-				auto& endPt = iItem->endNode->position;
+				auto endNode = getEndNode(iItem, pCurrent);
+				if (endNode == nullptr)
+					continue;
+				auto& endPt = endNode->position;
 				for (auto& jItem : pNext->laneBoundaries)
 				{
-					auto& startPt = jItem->startNode->position;
-					if (iItem->endNode->originId == jItem->startNode->originId ||
+					auto startNode = getStartNode(jItem, pNext);
+					if (startNode == nullptr)
+						continue;
+					auto& startPt = startNode->position;
+					if (endNode->originId == startNode->originId ||
 						endPt.pos.distance(startPt.pos) < CONNECT_POINT_EPSILON) {
 						isBuildLaneGroupTopo = true;
 						break;
@@ -404,10 +418,16 @@ namespace OMDB
 		for (int i = 0; i < pCurrent->lanes.size(); i++)
 		{
 			HadLane* pCurrentLane = pCurrent->lanes[i];
+			auto endNode = pCurrentLane->endNode;
+			if (endNode == nullptr)
+				continue;
 			for (int j = 0; j < pNext->lanes.size(); j++)
 			{
 				HadLane* pNextLane = pNext->lanes[j];
-				if (pCurrentLane->endNode->originId == pNextLane->startNode->originId)
+				auto startNode = pNextLane->startNode;
+				if (startNode == nullptr)
+					continue;
+				if (endNode->originId == startNode->originId)
 				{
 					if (std::find(pCurrentLane->next.begin(), pCurrentLane->next.end(), pNextLane) == pCurrentLane->next.end())
 					{
@@ -426,10 +446,16 @@ namespace OMDB
 		for (int i = 0; i < pCurrent->laneBoundaries.size(); i++)
 		{
 			HadLaneBoundary* pCurrentLaneBoundary = pCurrent->laneBoundaries[i];
+			auto endNode = pCurrentLaneBoundary->endNode;
+			if (endNode == nullptr)
+				continue;
 			for (int j = 0; j < pNext->laneBoundaries.size(); j++)
 			{
 				HadLaneBoundary* pNextLaneBoundary = pNext->laneBoundaries[j];
-				if (pCurrentLaneBoundary->endNode->originId == pNextLaneBoundary->startNode->originId)
+				auto startNode = pNextLaneBoundary->startNode;
+				if (startNode == nullptr)
+					continue;
+				if (endNode->originId == startNode->originId)
 				{
 					if (std::find(pCurrentLaneBoundary->next.begin(), pCurrentLaneBoundary->next.end(), pNextLaneBoundary) == pCurrentLaneBoundary->next.end())
 					{
@@ -450,10 +476,16 @@ namespace OMDB
 			for (int i = 0; i < pCurrent->roadBoundaries.size(); i++)
 			{
 				HadRoadBoundary* pCurrentRoadBoundary = pCurrent->roadBoundaries[i];
+				auto endNode = pCurrentRoadBoundary->endNode;
+				if (endNode == nullptr)
+					continue;
 				for (int j = 0; j < pNext->roadBoundaries.size(); j++)
 				{
 					HadRoadBoundary* pNextRoadBoundary = pNext->roadBoundaries[j];
-					if (pCurrentRoadBoundary->endNode->originId == pNextRoadBoundary->startNode->originId)
+					auto startNode = pNextRoadBoundary->startNode;
+					if (startNode == nullptr)
+						continue;
+					if (endNode->originId == startNode->originId)
 					{
 						if (std::find(pCurrentRoadBoundary->next.begin(), pCurrentRoadBoundary->next.end(), pNextRoadBoundary) == pCurrentRoadBoundary->next.end())
 						{
@@ -466,7 +498,7 @@ namespace OMDB
 							pNextRoadBoundary->previous.push_back(pCurrentRoadBoundary);
 						}
 					}
-					if (pCurrentRoadBoundary->endNode->originId == pNextRoadBoundary->endNode->originId)
+					if (pNextRoadBoundary->endNode && endNode->originId == pNextRoadBoundary->endNode->originId)
 					{
 						pCurrentRoadBoundary->danglingEndNode = false;
 						pNextRoadBoundary->danglingEndNode = false;
@@ -499,6 +531,56 @@ namespace OMDB
 		}
 	}
 
+	bool TopoBuilder::directionEqual(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup, int direction)
+	{
+		if (pBoundary == nullptr || pGroup == nullptr)
+			return false;
+		if (pBoundary->relLgs.count(pGroup->originId) && pBoundary->relLgs[pGroup->originId].lgMarkDirect == direction)
+			return true;
+		return false;
+	}
+
+	bool TopoBuilder::directionEqual(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup, int direction)
+	{
+		if (pBoundary == nullptr || pGroup == nullptr)
+			return false;
+		if (pBoundary->relLgs.count(pGroup->originId) && pBoundary->relLgs[pGroup->originId].direction == direction)
+			return true;
+		return false;
+	}
+
+	HadRoadBoundaryNode* TopoBuilder::getStartNode(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup)
+	{
+		auto startNode = pBoundary->startNode;
+		if (directionEqual(pBoundary, pGroup, 3))
+			startNode = pBoundary->endNode;
+		return startNode;
+	}
+
+	HadRoadBoundaryNode* TopoBuilder::getEndNode(HadRoadBoundary* const pBoundary, HadLaneGroup* const pGroup)
+	{
+		auto endNode = pBoundary->endNode;
+		if (directionEqual(pBoundary, pGroup, 3))
+			endNode = pBoundary->startNode;
+		return endNode;
+	}
+
+	HadLaneBoundaryNode* TopoBuilder::getStartNode(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup)
+	{
+		auto startNode = pBoundary->startNode;
+		if (directionEqual(pBoundary, pGroup, 3))
+			startNode = pBoundary->endNode;
+		return startNode;
+	}
+
+	HadLaneBoundaryNode* TopoBuilder::getEndNode(HadLaneBoundary* const pBoundary, HadLaneGroup* const pGroup)
+	{
+		auto endNode = pBoundary->endNode;
+		if (directionEqual(pBoundary, pGroup, 3))
+			endNode = pBoundary->startNode;
+		return endNode;
+	}
+
 	std::vector<HadLaneGroup*> TopoBuilder::getGroups(HadLink* pLink, std::vector<HadLaneGroup*>& groups, int direct)
 	{
 		std::vector<HadLaneGroup*> grps;
@@ -519,7 +601,9 @@ namespace OMDB
 			[&](const HadLaneGroup* first, const HadLaneGroup* second)->bool {
 				auto relLinkFirst = first->relLinks.find(pLink);
 				auto relLInkSecond = second->relLinks.find(pLink);
-				return relLinkFirst->second.start < relLInkSecond->second.start;
+				if (relLinkFirst->second.start != relLInkSecond->second.start)
+					return relLinkFirst->second.start < relLInkSecond->second.start;
+				return relLinkFirst->second.end < relLInkSecond->second.end;
 			}
 		);
 		return grps;

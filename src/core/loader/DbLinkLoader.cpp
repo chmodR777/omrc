@@ -4,6 +4,7 @@
 
 #include "DbLinkLoader.h"
 #include "DbRecordIterator.h"
+#include "CompileSetting.h"
 
 namespace OMDB
 {
@@ -22,9 +23,6 @@ namespace OMDB
         loadLinkTollArea();
 		loadLinkForm();
 
-		loadLinkName();
-		loadRoadName();
-
         loadLinkLanePa();
         loadLgLink();
         loadLgAssociation();
@@ -33,51 +31,90 @@ namespace OMDB
         loadNodeForm();
         loadNodeMesh();
 
-        loadZLevel();
-        loadLaneInfo();
-        loadLaneInfoLink();
+		if (CompileSetting::instance()->isGenerateHdData)
+		{
+			loadLinkAddition();
 
-        loadRdLinkLanePa();
-        loadRdLaneLinkCLM();
-        loadRdLaneLinkCLMAcess();
-        loadRdLaneLinkCLMCondition();
-        loadRdLaneLinkCLMSpeedLimit();
+			loadLinkName();
+			loadRoadName();
 
-		loadRdLaneLanePa();
-		loadRdLaneTopoDetail();
-		loadRdLaneTopoCond();
-		loadRdLaneTopoVia();
+			loadZLevel();
+			loadLaneInfo();
+			loadLaneInfoLink();
+
+			loadRdLinkLanePa();
+			loadRdLaneLinkCLM();
+			loadRdLaneLinkCLMAcess();
+			loadRdLaneLinkCLMCondition();
+			loadRdLaneLinkCLMSpeedLimit();
+
+			loadRdLaneLanePa();
+			loadRdLaneTopoDetail();
+			loadRdLaneTopoCond();
+			loadRdLaneTopoVia();
+		}
 
         loadLinkSpeedLimit();
     }
     void DbLinkLoader::loadLink()
     {
         // TODO SEPARATION_LEFT,SEPARATION_RIGHT,MEDIAN_LEFT,MEDIAN_RIGHT,OVERHEAD_OBSTRUCTION
-        std::string sql = "SELECT LINK_PID,S_NODE_PID,E_NODE_PID,KIND,MESH,MULTI_DIGITIZED,DIRECT,GEOMETRY FROM HAD_LINK";
+        std::string sql = "SELECT LINK_PID,S_NODE_PID,E_NODE_PID,KIND,MULTI_DIGITIZED,DIRECT,BRIDGE_TYPE,IS_OVERLINE_FLYOVER,IS_VIADUCT,FUNCTION_CLASS,FRONTAGE,GEOMETRY FROM HAD_LINK";
         recordIterator.resetWithSqlStr(sql);
         while (recordIterator.hasNextRecord())
         {
             sqlite3_stmt* stmt = recordIterator.record();
             DbLink* pLink = (DbLink*)m_pDatabase->alloc(RecordType::DB_HAD_LINK);
-            pLink->uuid = sqlite3_column_int64(stmt, 0);
-            pLink->startNode = sqlite3_column_int64(stmt, 1);
-            pLink->endNode = sqlite3_column_int64(stmt, 2);
-            pLink->kind = sqlite3_column_int(stmt, 3);
 
-			pLink->multi_digitized = sqlite3_column_int(stmt, 5);
-			pLink->direct = sqlite3_column_int(stmt, 6);
-			//pLink->separation_left = sqlite3_column_int(stmt, 7);
-            //pLink->separation_right = sqlite3_column_int(stmt, 8);
-            //pLink->median_left = sqlite3_column_int(stmt, 9);
-            //pLink->median_right = sqlite3_column_int(stmt, 10);
-            //pLink->overhead_obstruction = sqlite3_column_int(stmt, 11);
+			int i = 0;
+            pLink->uuid = sqlite3_column_int64(stmt, i++);
+            pLink->startNode = sqlite3_column_int64(stmt, i++);
+            pLink->endNode = sqlite3_column_int64(stmt, i++);
+            pLink->kind = sqlite3_column_int(stmt, i++);
 
-            const unsigned char* geometry = (const unsigned char*)sqlite3_column_blob(stmt, 7);
-            int size = sqlite3_column_bytes(stmt, 7);
+			pLink->multi_digitized = sqlite3_column_int(stmt, i++);
+			pLink->direct = sqlite3_column_int(stmt, i++);
+			//pLink->separation_left = sqlite3_column_int(stmt, i++);
+            //pLink->separation_right = sqlite3_column_int(stmt, i++);
+            //pLink->median_left = sqlite3_column_int(stmt, i++);
+            //pLink->median_right = sqlite3_column_int(stmt, i++);
+            //pLink->overhead_obstruction = sqlite3_column_int(stmt, i++);
+
+			pLink->bridge_type = sqlite3_column_int(stmt, i++);
+			pLink->is_overline_flyover = sqlite3_column_int(stmt, i++);
+			pLink->is_viaduct = sqlite3_column_int(stmt, i++);
+			pLink->function_class = sqlite3_column_int(stmt, i++);
+			pLink->frontage = sqlite3_column_int(stmt, i++);
+
+			int geometryIdx = i++;
+            const unsigned char* geometry = (const unsigned char*)sqlite3_column_blob(stmt, geometryIdx);
+            int size = sqlite3_column_bytes(stmt, geometryIdx);
             praseLineString3d(geometry,size, pLink->geometry);
             m_pDatabase->insert(pLink->uuid, pLink);
         }
     }
+
+	void DbLinkLoader::loadLinkAddition()
+	{
+		std::string sql = "SELECT LINK_PID,LANE_NUM,LANE_S2E,LANE_E2S,LANE_CLASS,PAVE_STATUS FROM HAD_LINK_ADDITION";
+		recordIterator.resetWithSqlStr(sql);
+		while (recordIterator.hasNextRecord())
+		{
+			sqlite3_stmt* stmt = recordIterator.record();
+
+			int i = 0;
+			int64 uuid = sqlite3_column_int64(stmt, i++);
+			DbLink* pLink = (DbLink*)m_pDatabase->query(uuid, RecordType::DB_HAD_LINK);
+			if (pLink != nullptr)
+			{
+				pLink->lane_num = sqlite3_column_int(stmt, i++);
+				pLink->lane_s2e = sqlite3_column_int(stmt, i++);
+				pLink->lane_e2s = sqlite3_column_int(stmt, i++);
+				pLink->lane_class = sqlite3_column_int(stmt, i++);
+				pLink->pave_status = sqlite3_column_int(stmt, i++);
+			}
+		}
+	}
 
 //     void DbLinkLoader::loadNoneMesh()
 //     {
@@ -367,21 +404,13 @@ namespace OMDB
 			relLink.shpSeqNum = sqlite3_column_int(stmt, 2);
 			relLink.startEnd = sqlite3_column_int(stmt, 3);
 			relLink.zLevel = sqlite3_column_int(stmt, 4);
+			relLink.dbZLevel = pZLevel;
 
 			const unsigned char* geometry = (const unsigned char*)sqlite3_column_blob(stmt, 5);
 			int size = sqlite3_column_bytes(stmt, 5);
 
 			prasePoint3d(geometry, size, relLink.geometry);
 			pZLevel->relLinks.push_back(relLink);
-		}
-
-		// 相同Z Level ID的记录按照z level从小到大排序
-		for (auto& zl : m_pDatabase->query(RecordType::DB_HAD_ZLEVEL)) {
-			DbZLevel* pZLevel = (DbZLevel*)zl;
-			std::sort(pZLevel->relLinks.begin(), pZLevel->relLinks.end(),
-				[](const auto& first, const auto& second)->bool {
-					return first.zLevel < second.zLevel;
-				});
 		}
 	}
 

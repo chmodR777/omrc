@@ -40,12 +40,12 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
       <IntrinsicFunctions>false</IntrinsicFunctions>
       <PreprocessorDefinitions>_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING;WIN32;NDEBUG;_CONSOLE;_LIB;USE_WRITER;P2T_STATIC_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;./src/algorithm;./src/geometry;./src/core;../eigen/include;../boost/include;../cpputil/include;../sqlite3/include;../navi_rds/include;../navicore-x64-std_debug_2019/include;../navicore-x64-std_debug_2019/include/protobuf;./3rd-party/libspatialite/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;./src/algorithm;./src/geometry;./src/core;../eigen/include;../boost/include;../cpputil/include;../sqlite3/include;../navi_rds/include;../navicore-x64-std_debug_2019/include;../navicore-x64-std_debug_2019/include/protobuf;./3rd-party/libspatialite/include;../nds_api/nds_api</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <ExceptionHandling>Async</ExceptionHandling>
@@ -58,7 +58,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>../sqlite3/lib;../navi_rds/lib;../navicore-x64-std_debug_2019/lib/Debug</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../sqlite3/lib;../navi_rds/lib;../navicore-x64-std_debug_2019/lib/Debug;../nds_api/build/nds_api/Release</AdditionalLibraryDirectories>
       <AdditionalDependencies>.\3rd-party\libspatialite\lib\spatialite_x64.lib;..\boost\lib\libboost_filesystem-vc142-mt-s-x64-1_81.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -91,7 +91,11 @@
     <ClInclude Include="src\algorithm\polyline_simplifier.h" />
     <ClInclude Include="src\algorithm\tangential_algorithm.h" />
     <ClInclude Include="src\core\command\RdsDataCheckCommand.h" />
+    <ClInclude Include="src\core\compiler\CurbCompiler.h" />
+    <ClInclude Include="src\core\compiler\HdRoutingCompiler.h" />
     <ClInclude Include="src\core\compiler\GreenbeltUrbanCompiler.h" />
+    <ClInclude Include="src\core\compiler\PatchSurfaceCompiler.h" />
+    <ClInclude Include="src\core\compiler\SpeedBumpCompiler.h" />
     <ClInclude Include="src\core\compiler\TrafficLightsCompiler.h" />
     <ClInclude Include="src\core\compiler\TransparentCompiler.h" />
     <ClInclude Include="src\core\compiler\TunnelCompiler.h" />
@@ -105,12 +109,21 @@
     <ClInclude Include="src\core\generator\LaneGenerator.h" />
     <ClInclude Include="src\core\generator\LinkGenerator.h" />
     <ClInclude Include="src\core\generator\RoadBoundaryGenerator.h" />
+    <ClInclude Include="src\core\generator\RoadGenerator.h" />
     <ClInclude Include="src\core\generator\ZGenerator.h" />
-    <ClInclude Include="src\core\record\DbRecord.cpp" />
-    <ClInclude Include="src\core\sd_road\DirLink.h" />
-    <ClInclude Include="src\core\sd_road\DirLinkPath.h" />
-    <ClInclude Include="src\core\sd_road\DivicedRoadSearcher.h" />
+    <ClCompile Include="src\core\compiler\CurbCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\HdRoutingCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\PatchSurfaceCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\SpeedBumpCompiler.cpp" />
+    <ClCompile Include="src\core\compiler\TransparentCompiler.cpp" />
+    <ClCompile Include="src\core\generator\RoadGenerator.cpp" />
+    <ClCompile Include="src\core\record\DbRecord.cpp" />
     <ClInclude Include="src\core\Segment.h" />
+    <ClInclude Include="src\core\writer\had_stream_writer.h" />
+    <ClInclude Include="src\core\writer\RoutingMapboxWriter.h" />
+    <ClInclude Include="src\core\writer\RoutingWriter.h" />
+    <ClInclude Include="src\core\writer\RoutingWriterFactory.h" />
+    <ClInclude Include="src\core\writer\TileWriter.h" />
     <ClInclude Include="src\geometry\map_point3d64.h" />
     <ClInclude Include="src\geometry\map_point64.h" />
     <ClInclude Include="src\geometry\map_rect64.h" />
@@ -242,7 +255,6 @@
     <ClCompile Include="src\core\command\RdsDataCheckCommand.cpp" />
     <ClCompile Include="src\core\compiler\GreenbeltUrbanCompiler.cpp" />
     <ClCompile Include="src\core\compiler\TrafficLightsCompiler.cpp" />
-    <ClCompile Include="src\core\compiler\TransparentCompiler.cpp" />
     <ClCompile Include="src\core\compiler\TunnelCompiler.cpp" />
     <ClCompile Include="src\core\compiler\GroupSemiTransparentCompiler.cpp" />
     <ClCompile Include="src\core\framework\MeshTopoBuilder.cpp" />
@@ -255,9 +267,11 @@
     <ClCompile Include="src\core\generator\LinkGenerator.cpp" />
     <ClCompile Include="src\core\generator\RoadBoundaryGenerator.cpp" />
     <ClCompile Include="src\core\generator\ZGenerator.cpp" />
-    <ClCompile Include="src\core\sd_road\DirLink.cpp" />
-    <ClCompile Include="src\core\sd_road\DirLinkPath.cpp" />
-    <ClCompile Include="src\core\sd_road\DivicedRoadSearcher.cpp" />
+    <ClCompile Include="src\core\writer\had_stream_writer.cpp" />
+    <ClCompile Include="src\core\writer\RoutingMapboxWriter.cpp" />
+    <ClCompile Include="src\core\writer\RoutingWriter.cpp" />
+    <ClCompile Include="src\core\writer\RoutingWriterFactory.cpp" />
+    <ClCompile Include="src\core\writer\TileWriter.cpp" />
     <ClCompile Include="src\glu\dict.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>

@@ -23,8 +23,7 @@ namespace OMDB
         void groupByMarkSeqNum(std::vector<HadPartAttribute*>& attributes, std::map<int64, std::vector<HadPartAttribute*>>& groupAttributes);
         LineString3d createSubLaneBoundary(LineString3d& location, MultiPoint3d& points);
         void adjustLaneBoundaryOffset(LineString3d& location, int offset, Polygon3d& polygon);
-        void saveRdsLine(RdsLine* pLine, LineString3d& location);
-        void saveRdsStopLine(RdsLine* pLine, LineString3d& location);
+        void saveRdsLine(LineString3d& location);
         forceinline int markingValue(int value) 
         {
             if (value != DB_HAD_APPLY_PA_REFERENCE && value != DB_HAD_NOT_APPLY_PA_REFERENCE) {

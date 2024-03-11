@@ -48,7 +48,10 @@ namespace OMDB
             getLaneGroupBoundary(laneGroup, leftSide, rightSide);
 
             Polygon3d polyGon;
-            makeLaneGroupPolygon(leftSide.vertexes, rightSide.vertexes, polyGon);
+            if (!leftSide.vertexes.empty() && !rightSide.vertexes.empty())
+            {
+                makeLaneGroupPolygon(leftSide.vertexes, rightSide.vertexes, polyGon);
+            }
             return polyGon.vertexes;
         };
 
@@ -296,7 +299,7 @@ namespace OMDB
         //    }
         //}
 
-        printInfo("expandLowerRoad end");
+        //printInfo("expandLowerRoad end");
 
     }
 

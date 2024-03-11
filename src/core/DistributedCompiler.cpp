@@ -1,13 +1,6 @@
 #include "stdafx.h"
 #include "DistributedCompiler.h"
 
-#include "generator/ZGenerator.h"
-#include "generator/LinkGenerator.h"
-#include "generator/GroupGenerator.h"
-#include "generator/RoadBoundaryGenerator.h"
-#include "generator/IntersectionGenerator.h"
-#include "generator/LaneBoundaryGenerator.h"
-#include "generator/LaneGenerator.h"
 #include "processor/LinkProcessor.h"
 #include "processor/LinkGroupProcessor.h"
 #include "processor/LinkGroupAssociationProcessor.h"
@@ -34,13 +27,21 @@
 #include "compiler/IntersectionCompiler.h"
 #include "compiler/GradeSeparationCompiler.h"
 #include "compiler/GroupSemiTransparentCompiler.h"
+#include "compiler/HDRoutingCompiler.h"
 #include "compiler/RoutingCompiler.h"
 #include "compiler/TunnelCompiler.h"
+#include "compiler/TrafficLightsCompiler.h"
+#include "compiler/TransparentCompiler.h"
+#include "compiler/CurbCompiler.h"
+#include "compiler/PatchSurfaceCompiler.h"
+#include "compiler/SpeedBumpCompiler.h"
 #include "framework/FileManager.h"
 #include "framework/MeshCache.h"
 #include <boost/filesystem.hpp>
 #include "writer/Writer.h"
 #include "writer/RdsWriterFactory.h"
+#include "writer/RoutingWriter.h"
+#include "writer/RoutingWriterFactory.h"
 #include "writer/RdsDatabaseWriter.h"
 #include "CompileSetting.h"
 #include <mutex>
@@ -50,11 +51,6 @@
 #include "framework/SpatialSeacher.h"
 #include "boost/filesystem/fstream.hpp"
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include "compiler/TrafficLightsCompiler.h"
-
-#include "compiler/TransparentCompiler.h"
-
-#include "compiler/Compiler.h"
 
 //#define USE_SPATIALITE
 // #define DEBUG_DATA_SIZE
@@ -91,10 +87,15 @@ namespace OMDB
 		//ids.push_back(20596316);
 
 		CompileSetting* pSetting = CompileSetting::instance();
-		if (pSetting->writeSpatialiteFileMeshId != 0)
+		if (pSetting->meshIdsForCompiling != "")
 		{
+			std::string pSettingMeshIdString = pSetting->meshIdsForCompiling;
+			std::vector<std::string> meshIdStrings;
+			boost::algorithm::trim(pSettingMeshIdString);
+			boost::split(meshIdStrings, pSettingMeshIdString, boost::is_any_of(" "));
 			ids.clear();
-			ids.push_back(pSetting->writeSpatialiteFileMeshId);
+			for (auto& meshIdString : meshIdStrings)
+				ids.push_back((uint32)std::atoi(meshIdString.data()));
 		}
 		size_t capacity = 1000;
 		if(pSetting->capacityNumber > 0)
@@ -124,6 +125,15 @@ namespace OMDB
 			}
 		}
 
+		std::string routingPath(directory + "\\china_refmap.rp");
+		if (!pSetting->isWriteSpatialite)
+		{
+			if (boost::filesystem::exists(routingPath))
+			{
+				boost::filesystem::remove(routingPath);
+			}
+		}
+
 		printInfo("----------------------------------------------------");
 		printInfo("开始编译，网格数量：%d",ids.size());
 		auto begin = std::chrono::steady_clock::now();
@@ -149,8 +159,13 @@ namespace OMDB
 				}
 				cache.reset(v);
 
+				// rds data
 				std::map<uint32, Blob> data;
 				for_each(v.begin(), v.end(), [&](uint32 id)->void {data[id] = Blob(); });
+
+				// hd routing data 
+				std::map<uint32, Blob> routingData;
+				for_each(v.begin(), v.end(), [&](uint32 id)->void {routingData[id] = Blob(); });
 
 				std::queue <uint32 > tasks;
 				for (auto tmpId : v)
@@ -195,12 +210,6 @@ namespace OMDB
 							if (pCenterMesh == nullptr)
 								continue;
 
-							// generate
-							if (pSetting->isGenerateHdData)
-							{
-								generate(pCenterMesh, &pNearbyMesh);
-							}
-
 							// process db to grid
 							for (auto& pMesh : pNearbyMesh)
 							{
@@ -237,7 +246,8 @@ namespace OMDB
 							processRelation(pCenterMesh, pCenterGrid, &nearby);
 
 							RdsTile* pTile = new RdsTile();
-							compile(pCenterGrid, nearby, pTile);
+							RoutingTile* pRoutingTile = new RoutingTile();
+							compile(pCenterGrid, nearby, pTile, pRoutingTile);
 
 							delete pCenterGrid;
 							for (auto p : nearby)
@@ -259,10 +269,17 @@ namespace OMDB
 								pWriter->Write(pTile, data[id].data, data[id].size);
 							}
 
+							if (pSetting->isOutputHdRoutingData)
+							{
+								RDS::RoutingWriter* pWriter = RDS::RoutingWriterFactory::instance()->createWriter(RDS::FormatType::ROUTING);
+								pWriter->Write(pRoutingTile, routingData[id].data, routingData[id].size);
+							}
+
 #ifdef DEBUG_DATA_SIZE
 							total[m] = data;
 #endif
 							delete pTile;
+							delete pRoutingTile;
 						}
 						catch (CallStackWalker& walker)
 						{
@@ -296,6 +313,11 @@ namespace OMDB
 					writeBinaryMesh(path.c_str(), data);
 					data.clear();
 				}
+				if (pSetting->isOutputHdRoutingData)
+				{
+					writeBinaryMesh(routingPath.c_str(), routingData);
+					routingData.clear();
+				}
 			}
 
 			printInfo("[%d%%] compile omdb.", 100);
@@ -304,6 +326,11 @@ namespace OMDB
 			{
 				writeBinaryHeader(path.c_str(), ids);
 				printInfo("输出文件地址：%s", path.c_str());
+			}
+			if (pSetting->isOutputHdRoutingData)
+			{
+				writeBinaryHeader(routingPath.c_str(), ids);
+				printInfo("输出算路文件地址：%s", routingPath.c_str());
 			}
 		}
 
@@ -329,20 +356,21 @@ namespace OMDB
 		printInfo("总耗时：%f", seconds);
 	}
 
-	void DistributedCompiler::compile(HadGrid* pGrid,std::vector<HadGrid*>& nearby, RDS::RdsTile* pTile)
+	void DistributedCompiler::compile(HadGrid* pGrid, std::vector<HadGrid*>& nearby,
+		RDS::RdsTile* pTile, RDS::RoutingTile* pRoutingTile)
 	{
 		pTile->meshId = MeshId_toNdsGridId(pGrid->getId());
 		pTile->latitude = pGrid->getBoundingbox2d().min.lat;
 		pTile->longitude = pGrid->getBoundingbox2d().min.lon;
 		CompilerData compilerData;
-		GroupCompiler(compilerData).Compile(pGrid,nearby, pTile);
+		GroupCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		IntersectionCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		RoadCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		LineCompiler(compilerData).Compile(pGrid, nearby, pTile);
- 		DiversionCompiler(compilerData).Compile(pGrid, nearby,pTile);
+		DiversionCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		GuardrailCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		MarkingCompiler(compilerData).Compile(pGrid, nearby, pTile);
- 		SpeedLimitBoardCompiler(compilerData).Compile(pGrid, nearby, pTile);	//顺序依赖GuardrailCompiler()完成。
+		SpeedLimitBoardCompiler(compilerData).Compile(pGrid, nearby, pTile);	//顺序依赖GuardrailCompiler()完成。
 		CrossWalkCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		GreenbeltCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		GreenbeltUrbanCompiler(compilerData).Compile(pGrid, nearby, pTile);
@@ -350,51 +378,24 @@ namespace OMDB
 		TextCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		TollGateCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		TunnelCompiler(compilerData).Compile(pGrid, nearby, pTile);
-// 		GradeSeparationCompiler(compilerData).Compile(pGrid, nearby, pTile);
+		//GradeSeparationCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		TrafficLightsCompiler(compilerData).Compile(pGrid, nearby, pTile);
+		PatchSurfaceCompiler(compilerData).Compile(pGrid, nearby, pTile);		//依赖路口、路面的编译
+		CurbCompiler(compilerData).Compile(pGrid, nearby, pTile);
+		SpeedBumpCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		if (CompileSetting::instance()->isOutputRoutingData)
 		{
 			RoutingCompiler(compilerData).Compile(pGrid, nearby, pTile);
 		}
+		if (CompileSetting::instance()->isOutputHdRoutingData)
+		{
+			pRoutingTile->meshId = pTile->meshId;
+			pRoutingTile->latitude = pTile->latitude;
+			pRoutingTile->longitude = pTile->longitude;
+			HdRoutingCompiler(compilerData, pRoutingTile).Compile(pGrid, nearby, pTile);
+		}
 		GroupSemiTransparentCompiler(compilerData).Compile(pGrid, nearby, pTile);
-		if (CompileSetting::instance()->isCompileTransparency)
-		{
-			TransparentCompiler(compilerData).Compile(pGrid, nearby, pTile);
-		}
-		
-	}
-
-	void DistributedCompiler::generate(DbMesh* pMesh, std::vector<DbMesh*>* nearby)
-	{
-		std::vector<DbMesh*> meshes;
-		for_each((*nearby).begin(), (*nearby).end(), [&](DbMesh* m)->void { meshes.push_back(m); });
-		meshes.push_back(pMesh);
-		auto generate = [](DbMesh* pMesh) {
-			if (pMesh != nullptr)
-			{
-				GeneratorData generatorData;
-				LinkGenerator(generatorData).Generate(pMesh);
-				ZGenerator(generatorData).Generate(pMesh);
-				GroupGenerator(generatorData).Generate(pMesh);
-				RoadBoundaryGenerator(generatorData).Generate(pMesh);
-				IntersectionGenerator(generatorData).Generate(pMesh);
-				LaneBoundaryGenerator(generatorData).Generate(pMesh);
-				LaneGenerator(generatorData).Generate(pMesh);
-			}
-		};
-		for (auto& mesh : meshes)
-		{
-			generate(mesh);
-		}
-
-		GeneratorData generatorData;
-		LinkGenerator(generatorData).GenerateRelation(pMesh, nearby);
-		ZGenerator(generatorData).GenerateRelation(pMesh, nearby);
-		GroupGenerator(generatorData).GenerateRelation(pMesh, nearby);
-		RoadBoundaryGenerator(generatorData).GenerateRelation(pMesh, nearby);
-		IntersectionGenerator(generatorData).GenerateRelation(pMesh, nearby);
-		LaneBoundaryGenerator(generatorData).GenerateRelation(pMesh, nearby);
-		LaneGenerator(generatorData).GenerateRelation(pMesh, nearby);
+		TransparentCompiler(compilerData).Compile(pGrid, nearby, pTile);
 	}
 
 	void DistributedCompiler::process(DbMesh* pMesh, HadGrid* pGrid)

@@ -5,6 +5,9 @@
 #include "math3d/dvector2.h"
 #include "math3d/vector2.h"
 #include "math3d/vector3.h"
+#include "core/Geometry.h"
+
+#include <array>
 
 namespace hadc
 {
@@ -92,3 +95,95 @@ namespace hadc
 	void GeometryUitl_grabMultiPolylines(const PolylineGrabParams& params, const Polyline* polylines, size_t lineCount, cqstd::vector<PolylineGrabResult>& resultsOut);
 }
 
+
+namespace OMDB
+{
+
+	/**
+	* 该类用于搜索数个线段中与指定点距离最近的线段，
+	* 并求得该线段上与指定点距离最近的点。
+	* Note: 仅在二维平面上计算最邻近点。
+	*/
+	class NearestPointOnLineSegmentsSearcher
+	{
+	public:
+		using Point = std::array<double, 3>;
+		using Segment = std::array<Point, 2>;
+
+		static Point Point_make(const MapPoint3D64& pt)
+		{
+			return Point{ double(pt.pos.lon), double(pt.pos.lat), double(pt.z) };
+		}
+
+		static Point Point_make(const MapPoint64& pt)
+		{
+			return Point{ double(pt.lon), double(pt.lat), 0.0 };
+		}
+
+		static Segment Segment_make(const MapPoint3D64& start, const MapPoint3D64& end)
+		{
+			return Segment{ Point_make(start), Point_make(end) };
+		}
+
+		static Segment Segment_make(const MapPoint64& start, const MapPoint64& end)
+		{
+			return Segment{ Point_make(start), Point_make(end) };
+		}
+
+		static MapPoint3D64 Point_toMapPoint(const Point& pt)
+		{
+			return MapPoint3D64{ MapPoint64{ int64(pt[0]), int64(pt[1]) }, int32(pt[2]) };
+		}
+
+		static double PointSqDist(const Point& pt1, const Point& pt2)
+		{
+			return std::pow(pt1[0] - pt2[0], 2.0) + std::pow(pt1[1] - pt2[1], 2.0);
+		}
+
+		// 存储线段上最邻近点在线段上的位置
+		enum class NearestPointPosition
+		{
+			SEGMENT_START, // 在线段起点
+			SEGMENT_MIDDLE, // 在线段中间部分（非起终点）
+			SEGMENT_END // 在线段终点
+		};
+
+		struct SearchResult
+		{
+			Point point;
+			NearestPointPosition pointPosition;
+			double sqDist;
+			int nearestSegmentIndex;
+
+			static SearchResult invalidObj()
+			{
+				return SearchResult{ Point{0, 0},  NearestPointPosition::SEGMENT_START, DBL_MAX, -1 };
+			}
+
+			bool valid()
+			{
+				return sqDist != DBL_MAX;
+			}
+		};
+
+	private:
+
+		std::vector<Segment> m_segments;
+
+
+	public:
+		static SearchResult findNearestPointToSegment(const Segment& segment, const Point& point);
+
+		NearestPointOnLineSegmentsSearcher(std::vector<Segment> segments) : m_segments(std::move(segments)) {}
+
+		const std::vector<Segment>& segments() const { return m_segments; }
+
+		SearchResult searchNearest(const Point& sourcePoint) const;
+	};
+
+	NearestPointOnLineSegmentsSearcher NearestPointOnLineSegmentsSearcher_make(const LineString3d& linestring);
+	NearestPointOnLineSegmentsSearcher NearestPointOnLineSegmentsSearcher_make(const std::vector<MapPoint3D64>& linestringVertices);
+
+	NearestPointOnLineSegmentsSearcher NearestPointOnLineSegmentsSearcher_make(const std::vector<Vector3>& linestring);
+
+}

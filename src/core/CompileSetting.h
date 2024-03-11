@@ -10,6 +10,7 @@ namespace OMDB
 		int threadNumber;
 		int capacityNumber;
 		std::string isOutputRoutingData;
+		std::string isOutputHdRoutingData;
 		std::string chinaRefMapFile;
 		std::string isNotCompileUrbanData;
 		std::string isGenerateHdData;
@@ -18,6 +19,8 @@ namespace OMDB
 		std::string isDaimlerShangHai;
 		std::string isCompileTurnWaiting;
 		std::string isWriteSpatialite;
+		std::string omrpDir;
+		std::string isCompileNdsData;
 	};
 
 	class CompileSetting
@@ -34,16 +37,18 @@ namespace OMDB
 		int capacityNumber;
 		std::string chinaRefMapFile;
 		int boundNumber;
-		int writeSpatialiteFileMeshId{ 0 };
+		std::string meshIdsForCompiling;
 
 		bool isOutputRoutingData{ false };				// 默认不输出mapbox格式数据文件
+		bool isOutputHdRoutingData{ false };				// 默认不输出mapbox格式数据文件
 		bool isNotCompileUrbanData{ false };			// 默认编译普通路
 		bool isGenerateHdData{ false };				    // 默认不根据LINK生成高精数据
 		bool isModifyHeightFromAbsToRel{ false };		// 默认不调整高度
 		bool isDaimlerShangHai{ false };		        // 默认不是戴姆勒项目
 		bool isCompileTurnWaiting{ false };             // 默认不编译待转区
-		bool isCompileTransparency{ false };            // 默认不编译高架半透明
 		bool isWriteSpatialite{false};				    // 默认不写出Spatialite数据
+		std::string omrpDir{ "" };
+		bool isCompileNdsData{false};				    // 默认不编译NDS数据
 
 		bool load(const IniFile* ini);
 		bool applyCompilerOptionsAndCheck(const CompilerOptions* options);

@@ -183,11 +183,6 @@ namespace OMDB
         void updateGoreDiversionInfo(
             goreDiversionInfo& goreDiversion, ring_2t _basePointExpandPoly);
 
-        bool isKneePoint(
-            const point_2t& currentPoint,
-            const point_2t& prevPoint,
-            const point_2t& nextPoint);
-
         ring_2t getExpandPolyByVector(
             const point_2t& basePoint,
             const vector_2t& dirH,

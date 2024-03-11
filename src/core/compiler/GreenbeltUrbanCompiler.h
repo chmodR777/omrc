@@ -52,7 +52,7 @@ namespace OMDB
 				
 		bool expandConnectionLaneGroups(HadLaneGroup* inLaneGroup, const std::vector<HadGrid*>& nearby, std::vector<HadLaneGroup*>& outConnectionLaneGroups);
 
-		bool getPointsByLaneGroups(std::vector<HadLaneGroup*> inLaneGroups, std::vector<MapPoint3D64>& Points);
+		bool getPointsByLaneGroups(std::vector<HadLaneGroup*>& inLaneGroups, std::vector<MapPoint3D64>& Points);
 
 		bool ableGreenbeltLaneGroup(HadLaneGroup* inLaneGroup);
 
@@ -70,6 +70,18 @@ namespace OMDB
 
 		bool makeGreenbeltSurfaceData(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd, RdsTile* pTile);
 
+		//bool existMiddleLaneGroup(std::vector<MapPoint3D64>& points1st, std::vector<MapPoint3D64>& points2nd);
+
+		bool existMiddleLaneGroup(std::vector<HadLaneGroup*>& in1stLaneGroups, std::vector<HadLaneGroup*>& in2ndLaneGroups);
+
+		bool makeUturnGreenbelt(std::vector <MapPoint3D64>& points1st, std::vector <MapPoint3D64>& points2nd , RdsTile* pTile);
+
+		bool insertPointAtFraction(MapPoint3D64& start, MapPoint3D64& end, double fraction, MapPoint3D64& outpoint);
+
+		bool deleteInvalidIntersectionLaneGroup(std::vector<HadLaneGroup*>& in1stLaneGroups, std::vector<HadLaneGroup*>& in2ndLaneGroups);
+
+		bool getNearestOtherLaneGroup(HadLaneGroup* in1stLaneGroup, std::vector<HadLaneGroup*>& in2ndLaneGroups, int& outLangGroupIndex);
+
 #ifdef __DEBUG_GREENBELTURBAN__
 		//debug
 		void PrintPoints(std::vector<MapPoint3D64> lanepoints, std::string mark = "");
@@ -82,6 +94,7 @@ namespace OMDB
 
 	private:
 		HadGrid* m_pGrid;
+		std::vector<HadGrid*> m_nearby;
 		std::vector<HadLaneGroup*>  m_1stLaneGroups;
 		std::vector< HadLaneGroup*> m_2ndLaneGroups;
 		std::vector< HadLaneGroup*> m_VisitLaneGroups;	

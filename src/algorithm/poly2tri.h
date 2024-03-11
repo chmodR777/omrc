@@ -3,7 +3,6 @@
 #include "math3d/vector2.h"
 #include "map_point3d64_converter.h"
 #include "geometry/map_point3d64.h"
-#include "tool_kit/boost_geometry_utils.h"
 class Poly2Tri
 {
 public:

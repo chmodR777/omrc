@@ -35,7 +35,8 @@ namespace OMDB
 		HAD_INTERSECTION,
 		HAD_TOLLGATE,
 		HAD_OBJECT_POLE,
-		HAD_LANE_TURNWAITING
+		HAD_LANE_TURNWAITING,
+		HAD_OBJECT_SPEED_BUMP
 	
 	};
 	enum class BoundaryType : int
@@ -405,6 +406,7 @@ namespace OMDB
 		// 是否跨网格
 		bool crossGrid { false };
 		int64 inIntersection { 0 };
+		bool isGenerated{ false };
 	};
 
 
@@ -740,6 +742,13 @@ namespace OMDB
 	public:
 		uint8 type{ 0 };				//	1 其他;2 树干
 		LineString3d location;				//	几何
+	};
+
+	class HadSpeedBump : public HadObject
+	{
+	public:
+		double heading{ 0.0 };
+		Polygon3d polygon;
 	};
 
 }

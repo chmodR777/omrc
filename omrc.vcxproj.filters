@@ -55,9 +55,6 @@
     <Filter Include="src\core\generator">
       <UniqueIdentifier>{61b06c91-fe96-4e5e-bfd1-c8b1cbbf1abd}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\core\sd_road">
-      <UniqueIdentifier>{e55b8601-4282-4100-a9a8-042a00e8c950}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -417,20 +414,46 @@
     <ClCompile Include="src\core\generator\LinkGenerator.cpp">
       <Filter>src\core\generator</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\compiler\TransparentCompiler.cpp" />
     <ClCompile Include="src\core\framework\RTreeSeacher.cpp">
       <Filter>src\core\framework</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\sd_road\DirLink.cpp">
-      <Filter>src\core\sd_road</Filter>
+    <ClCompile Include="src\core\record\DbRecord.cpp">
+      <Filter>src\core\record</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\sd_road\DirLinkPath.cpp">
-      <Filter>src\core\sd_road</Filter>
+    <ClCompile Include="src\core\compiler\TransparentCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\sd_road\DivicedRoadSearcher.cpp">
-      <Filter>src\core\sd_road</Filter>
+    <ClCompile Include="src\core\generator\RoadGenerator.cpp">
+      <Filter>src\core\generator</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\HdRoutingCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\writer\had_stream_writer.cpp">
+      <Filter>src\core\writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\writer\RoutingWriter.cpp">
+      <Filter>src\core\writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\writer\RoutingWriterFactory.cpp">
+      <Filter>src\core\writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\writer\TileWriter.cpp">
+      <Filter>src\core\writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\writer\RoutingMapboxWriter.cpp">
+      <Filter>src\core\writer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\CurbCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
     </ClCompile>
     <ClCompile Include="src\core\compiler\GreenbeltUrbanCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\SpeedBumpCompiler.cpp">
+      <Filter>src\core\compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\compiler\PatchSurfaceCompiler.cpp">
       <Filter>src\core\compiler</Filter>
     </ClCompile>
   </ItemGroup>
@@ -837,26 +860,46 @@
     <ClInclude Include="src\core\Segment.h">
       <Filter>src\core</Filter>
     </ClInclude>
-    <ClInclude Include="src\core\record\DbRecord.cpp">
-      <Filter>src\core\record</Filter>
-    </ClInclude>
-    <ClInclude Include="src\core\compiler\TransparentCompiler.h" />
     <ClInclude Include="src\core\framework\RTreeSeacher.h">
       <Filter>src\core\framework</Filter>
-    </ClInclude>
-    <ClInclude Include="src\core\sd_road\DirLink.h">
-      <Filter>src\core\sd_road</Filter>
-    </ClInclude>
-    <ClInclude Include="src\core\sd_road\DirLinkPath.h">
-      <Filter>src\core\sd_road</Filter>
-    </ClInclude>
-    <ClInclude Include="src\core\sd_road\DivicedRoadSearcher.h">
-      <Filter>src\core\sd_road</Filter>
     </ClInclude>
     <ClInclude Include="src\algorithm\map_point_math.h">
       <Filter>src\algorithm</Filter>
     </ClInclude>
+    <ClInclude Include="src\core\compiler\TransparentCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\generator\RoadGenerator.h">
+      <Filter>src\core\generator</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\HdRoutingCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\writer\had_stream_writer.h">
+      <Filter>src\core\writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\writer\RoutingMapboxWriter.h">
+      <Filter>src\core\writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\writer\RoutingWriter.h">
+      <Filter>src\core\writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\writer\RoutingWriterFactory.h">
+      <Filter>src\core\writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\writer\TileWriter.h">
+      <Filter>src\core\writer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\CurbCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
     <ClInclude Include="src\core\compiler\GreenbeltUrbanCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\SpeedBumpCompiler.h">
+      <Filter>src\core\compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\compiler\PatchSurfaceCompiler.h">
       <Filter>src\core\compiler</Filter>
     </ClInclude>
   </ItemGroup>

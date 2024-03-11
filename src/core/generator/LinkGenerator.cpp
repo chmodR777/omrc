@@ -2,6 +2,7 @@
 #include "LinkGenerator.h"
 #include "framework/MeshTopoBuilder.h"
 #include <algorithm>
+#include <mutex>
 namespace OMDB
 {
     void LinkGenerator::generate(DbMesh* const pMesh)
@@ -57,6 +58,53 @@ namespace OMDB
 
     void LinkGenerator::generateRelation(DbMesh* const pMesh, std::vector<DbMesh*>* nearby)
     {
+		// 按序填充跨网格的link
+		auto fillNearbyLinks = [](std::vector<DbNode*>& nodes) {
+			std::sort(nodes.begin(), nodes.end(), 
+				[](DbNode* first, DbNode* second) {return first->uuid < second->uuid; });
+			auto firstNode = nodes.front();
+			for (int idx = 1; idx < (int)nodes.size(); idx++) {
+				auto secondNode = nodes[idx];
+				std::lock_guard<Spinlock> firstLock(firstNode->linkLock);
+				for (auto pSecondLink : secondNode->links)
+					if (std::find(firstNode->links.begin(), firstNode->links.end(), pSecondLink) == firstNode->links.end())
+						firstNode->links.push_back(pSecondLink);
+			}
+			for (int idx = 1; idx < (int)nodes.size(); idx++) {
+				auto secondNode = nodes[idx];
+				std::lock_guard<Spinlock> secondLock(secondNode->linkLock);
+				for (auto pFirstLink : firstNode->links)
+					if (std::find(secondNode->links.begin(), secondNode->links.end(), pFirstLink) == secondNode->links.end())
+						secondNode->links.push_back(pFirstLink);
+			}
+		};
+
+		// 合并跨网格node关联的link
+		if (nearby != nullptr && !nearby->empty())
+		{
+			std::vector<DbRecord*>& nodes = pMesh->query(RecordType::DB_HAD_NODE);
+			for (auto nd : nodes)
+			{
+				bool crossGridNode = false;
+				DbNode* pNode = (DbNode*)nd;
+				for (auto idx = 0; idx < pNode->links.size(); idx++)
+					if (pNode->links[idx]->crossGrid)
+						crossGridNode = true;
+				if (crossGridNode)
+				{
+					std::vector<DbNode*> sameNodes{ pNode };
+					for (auto mesh : *nearby) {
+						auto pRecord = (DbNode*)mesh->query(pNode->uuid, RecordType::DB_HAD_NODE);
+						if (pRecord != nullptr) {
+							sameNodes.push_back(pRecord);
+						}
+					}
+					if (sameNodes.size() > 1)
+						fillNearbyLinks(sameNodes);
+				}
+			}
+		}
+
 		// 建立跨网格topo关系
 		MeshTopoBuilder::buildTopoCrossGrid(pMesh, nearby);
     }
@@ -85,7 +133,9 @@ namespace OMDB
 			pMesh->queryTable(RecordType::DB_HAD_LG_LINK).clear();
 			pMesh->queryTable(RecordType::DB_HAD_ROAD_BOUNDARY_LINK).clear();
 			pMesh->queryTable(RecordType::DB_HAD_LANE_MARK_LINK).clear();
-			pMesh->queryTable(RecordType::DB_HAD_OBJECT_BARRIER).clear();
+			//pMesh->queryTable(RecordType::DB_HAD_OBJECT_BARRIER).clear();
+			pMesh->queryTable(RecordType::DB_HAD_OBJECT_FILL_AREA).clear();
+			pMesh->queryTable(RecordType::DB_HAD_OBJECT_STOPLOCATION).clear();
 			std::vector<DbRecord*>& links = pMesh->query(RecordType::DB_HAD_LINK);
 			for (auto hl : links) {
 				DbLink* phl = (DbLink*)hl;
